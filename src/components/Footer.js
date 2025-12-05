@@ -51,16 +51,16 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
             <div className="flex space-x-4">
-              <a href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
+              <a href="https://karhubty.com" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
                 <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
+              <a href="https://karhubty.com" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
+              <a href="https://karhubty.com" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
+              <a href="https://karhubty.com" className="bg-gray-800 p-2 rounded-lg hover:bg-sky-500 transition-colors">
                 <Linkedin className="w-5 h-5" />
               </a>
             </div>
