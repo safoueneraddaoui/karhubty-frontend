@@ -31,9 +31,11 @@ const Navigation = ({ user, onLogout }) => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-              Home
-            </Link>
+            {!user && (
+              <Link to="/" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                Home
+              </Link>
+            )}
             <Link to="/cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
               Browse Cars
             </Link>
@@ -76,9 +78,11 @@ const Navigation = ({ user, onLogout }) => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden pb-4 space-y-2">
-            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
-              Home
-            </Link>
+            {!user && (
+              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
+                Home
+              </Link>
+            )}
             <Link to="/cars" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
               Browse Cars
             </Link>

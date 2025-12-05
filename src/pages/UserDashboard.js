@@ -256,20 +256,36 @@ const UserDashboard = ({ user }) => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Filter Tabs - Redesigned */}
         <div className="mb-6">
-          <div className="flex flex-wrap gap-2 border-b border-gray-200">
-            {['overview', 'active', 'pending', 'completed', 'cancelled'].map((tab) => (
+          <div className="bg-white rounded-xl shadow-lg p-2 inline-flex gap-2">
+            {[
+              { key: 'overview', label: 'All Rentals', icon: <Calendar className="w-4 h-4" /> },
+              { key: 'active', label: 'Active', icon: <Calendar className="w-4 h-4" /> },
+              { key: 'pending', label: 'Pending', icon: <Clock className="w-4 h-4" /> },
+              { key: 'completed', label: 'Completed', icon: <Star className="w-4 h-4" /> },
+              { key: 'cancelled', label: 'Cancelled', icon: <XCircle className="w-4 h-4" /> }
+            ].map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 font-medium border-b-2 transition-colors capitalize ${
-                  activeTab === tab
-                    ? 'border-sky-500 text-sky-600'
-                    : 'border-transparent text-gray-600 hover:text-sky-500'
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                  activeTab === tab.key
+                    ? 'bg-sky-500 text-white shadow-md transform scale-105'
+                    : 'text-gray-600 hover:bg-sky-50 hover:text-sky-600'
                 }`}
               >
-                {tab} {tab !== 'overview' && `(${filterRentalsByStatus(tab).length})`}
+                {tab.icon}
+                <span>{tab.label}</span>
+                {tab.key !== 'overview' && (
+                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    activeTab === tab.key
+                      ? 'bg-white bg-opacity-30'
+                      : 'bg-gray-200'
+                  }`}>
+                    {filterRentalsByStatus(tab.key).length}
+                  </span>
+                )}
               </button>
             ))}
           </div>

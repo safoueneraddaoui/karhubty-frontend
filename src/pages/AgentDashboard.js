@@ -20,8 +20,10 @@ const AgentDashboard = ({ user }) => {
     pricePerDay: '',
     guaranteePrice: '',
     category: 'Sedan',
-    features: []
+    features: [],
+    images: []
   });
+  const [carImages, setCarImages] = useState([]);
 
   useEffect(() => {
     fetchAgentData();
@@ -143,6 +145,7 @@ const AgentDashboard = ({ user }) => {
     if (car) {
       setEditingCar(car);
       setCarFormData(car);
+      setCarImages(car.images || []);
     } else {
       setEditingCar(null);
       setCarFormData({
@@ -157,29 +160,61 @@ const AgentDashboard = ({ user }) => {
         pricePerDay: '',
         guaranteePrice: '',
         category: 'Sedan',
-        features: []
+        features: [],
+        images: []
       });
+      setCarImages([]);
     }
     setShowCarModal(true);
   };
 
   const handleCarSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate images
+    if (carImages.length === 0) {
+      alert('Please upload at least 1 image for the car');
+      return;
+    }
+    
     try {
+      // TODO: Create FormData for image upload
+      // const formData = new FormData();
+      // Object.keys(carFormData).forEach(key => {
+      //   formData.append(key, carFormData[key]);
+      // });
+      // carImages.forEach((image, index) => {
+      //   formData.append('images', image);
+      // });
+      
       if (editingCar) {
         // TODO: Update car API call
-        // await axios.put(`http://localhost:8080/api/cars/${editingCar.carId}`, carFormData);
+        // await axios.put(`http://localhost:8080/api/cars/${editingCar.carId}`, formData);
         alert('Car updated successfully!');
       } else {
         // TODO: Add car API call
-        // await axios.post(`http://localhost:8080/api/cars`, carFormData);
+        // await axios.post(`http://localhost:8080/api/cars`, formData);
         alert('Car added successfully!');
       }
       setShowCarModal(false);
+      setCarImages([]);
       fetchAgentData();
     } catch (error) {
       alert('Failed to save car');
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + carImages.length > 5) {
+      alert('Maximum 5 images allowed');
+      return;
+    }
+    setCarImages([...carImages, ...files]);
+  };
+
+  const removeImage = (index) => {
+    setCarImages(carImages.filter((_, i) => i !== index));
   };
 
   const deleteCar = async (carId) => {
@@ -633,8 +668,58 @@ const AgentDashboard = ({ user }) => {
                   />
                 </div>
               </div>
+
+              {/* Image Upload Section */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Car Images <span className="text-red-500">*</span> (Min 1, Max 5)
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-sky-500 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="car-images"
+                  />
+                  <label htmlFor="car-images" className="cursor-pointer">
+                    <div className="flex flex-col items-center">
+                      <Plus className="w-12 h-12 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 mb-1">Click to upload images</p>
+                      <p className="text-xs text-gray-500">PNG, JPG up to 10MB each</p>
+                    </div>
+                  </label>
+                </div>
+                
+                {/* Image Preview */}
+                {carImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-5 gap-2">
+                    {carImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={typeof image === 'string' ? image : URL.createObjectURL(image)}
+                          alt={`Car ${index + 1}`}
+                          className="w-full h-20 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {carImages.length === 0 && (
+                  <p className="text-xs text-red-500 mt-2">⚠️ At least 1 image is required</p>
+                )}
+              </div>
               
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-3 mt-6 col-span-2">
                 <button
                   type="button"
                   onClick={() => setShowCarModal(false)}
