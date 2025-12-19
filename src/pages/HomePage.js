@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Car, Shield, Clock, Star, Search, Calendar } from 'lucide-react';
+import Partners from '../components/Partners';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -108,6 +109,9 @@ const HomePage = () => {
           </button>
         </div>
       </section>
+
+      {/* Partners Section */}
+      <Partners />
     </div>
   );
 };
