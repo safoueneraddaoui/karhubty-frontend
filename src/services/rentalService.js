@@ -99,6 +99,117 @@ const rentalService = {
       throw error.response?.data?.message || 'Failed to fetch user rentals';
     }
   },
+
+  /**
+   * Get agent's rentals (all rental requests for agent's cars)
+   * @returns {Promise} Array of rentals for agent's cars
+   */
+  getAgentRentals: async () => {
+    try {
+      console.log('📦 rentalService.getAgentRentals() - Fetching agent rentals');
+      
+      // Get agent ID from localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const agentId = parseInt(user?.id || user?.userId || 0, 10);
+      
+      console.log('📍 Agent ID:', agentId);
+      
+      if (!agentId) {
+        console.warn('⚠️ No agent ID found');
+        return [];
+      }
+      
+      // Fetch all rentals
+      const response = await api.get('/rentals');
+      console.log('✅ rentalService.getAgentRentals() - Got all rentals:', response.data);
+      
+      let allRentals = response.data.data || response.data;
+      if (!Array.isArray(allRentals)) {
+        allRentals = [allRentals];
+      }
+      
+      // Filter rentals by agent (find rentals where car belongs to agent)
+      const agentRentals = allRentals.filter(rental => {
+        const rentalAgentId = parseInt(rental.car?.agentId || rental.agentId || 0, 10);
+        return rentalAgentId === agentId;
+      });
+      
+      console.log('✅ Filtered to agent rentals:', agentRentals.length);
+      return agentRentals;
+    } catch (error) {
+      console.error('❌ rentalService.getAgentRentals() - Error:', error.message);
+      throw error.response?.data?.message || 'Failed to fetch agent rentals';
+    }
+  },
+
+  /**
+   * Approve rental request (Agent only)
+   * @param {number} rentalId - Rental ID
+   * @returns {Promise} Updated rental data
+   */
+  approveRental: async (rentalId) => {
+    try {
+      console.log('📝 rentalService.approveRental() - Approving rental:', rentalId);
+      const response = await api.put(`/rentals/${rentalId}/approve`);
+      console.log('✅ rentalService.approveRental() - Success:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ rentalService.approveRental() - Error:', error);
+      throw error.response?.data?.message || 'Failed to approve rental';
+    }
+  },
+
+  /**
+   * Reject rental request (Agent only)
+   * @param {number} rentalId - Rental ID
+   * @returns {Promise} Updated rental data
+   */
+  rejectRental: async (rentalId) => {
+    try {
+      console.log('📝 rentalService.rejectRental() - Rejecting rental:', rentalId);
+      const response = await api.put(`/rentals/${rentalId}/reject`);
+      console.log('✅ rentalService.rejectRental() - Success:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ rentalService.rejectRental() - Error:', error);
+      throw error.response?.data?.message || 'Failed to reject rental';
+    }
+  },
+
+  /**
+   * Get pending rental requests count for agent
+   * @returns {Promise} Count of pending rentals
+   */
+  getPendingRentalsCount: async () => {
+    try {
+      console.log('📊 rentalService.getPendingRentalsCount() - Fetching pending count');
+      
+      // Strategy 1: Try /rentals/agent/pending-count
+      try {
+        console.log('📍 Attempt 1: GET /rentals/agent/pending-count');
+        const response = await api.get('/rentals/agent/pending-count');
+        console.log('✅ /rentals/agent/pending-count succeeded:', response.data);
+        return response.data;
+      } catch (err1) {
+        console.warn('⚠️ /rentals/agent/pending-count failed:', err1.response?.status);
+        
+        // Strategy 2: Fetch all agent rentals and count pending
+        try {
+          console.log('📍 Attempt 2: Manual count from getAgentRentals()');
+          const rentals = await this.getAgentRentals();
+          const pendingCount = Array.isArray(rentals) ? rentals.filter(r => r.status === 'pending').length : 0;
+          console.log('✅ Manual count succeeded:', pendingCount);
+          return { count: pendingCount };
+        } catch (err2) {
+          console.warn('⚠️ Manual count failed:', err2.message);
+          return { count: 0 };
+        }
+      }
+    } catch (error) {
+      console.error('❌ rentalService.getPendingRentalsCount() - Error:', error);
+      return { count: 0 };
+    }
+  },
 };
 
 export default rentalService;

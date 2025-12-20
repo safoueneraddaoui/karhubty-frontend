@@ -4,16 +4,54 @@ import tokenService from './tokenService';
 const userService = {
   /**
    * Get current user profile (authenticated user)
+   * Uses role-based endpoints: /users/profile for users, /agents/profile for agentadmin
    * @returns {Promise} Current user profile data
    */
   getProfileData: async () => {
     try {
-      console.log('🔍 userService.getProfileData() - Making request to /users/profile');
-      const response = await api.get('/users/profile');
+      // Get stored user to determine role
+      const storedUser = tokenService.getUser();
+      const storedToken = tokenService.getToken();
+      
+      // Determine correct endpoint based on user role
+      const isAgent = storedUser?.role === 'agentadmin' || storedUser?.role === 'agent';
+      const endpoint = isAgent ? '/agents/profile' : '/users/profile';
+      
+      console.log('🔍 userService.getProfileData() - Making request to', endpoint);
+      console.log('📋 BEFORE API CALL - Stored user:', {
+        id: storedUser?.id,
+        email: storedUser?.email,
+        role: storedUser?.role,
+        firstName: storedUser?.firstName
+      });
+      console.log('📋 BEFORE API CALL - Token (first 30 chars):', storedToken?.substring(0, 30));
+      
+      const response = await api.get(endpoint);
       console.log('✅ userService.getProfileData() - Success response:', response.data);
       
       // Handle different response formats
       const profileData = response.data.data || response.data;
+      
+      console.log('📋 AFTER API CALL - Profile data received:', {
+        id: profileData?.id || profileData?.userId,
+        email: profileData?.email,
+        role: profileData?.role,
+        firstName: profileData?.firstName
+      });
+      
+      // Check if received profile matches stored user
+      if (storedUser && profileData) {
+        const storedEmail = storedUser.email;
+        const receivedEmail = profileData.email;
+        if (storedEmail !== receivedEmail) {
+          console.error('🚨 CRITICAL: Profile mismatch detected!');
+          console.error('   - Logged in as:', storedEmail);
+          console.error('   - But received profile for:', receivedEmail);
+          console.error('   - This is a BACKEND issue - JWT token is returning wrong user!');
+        } else {
+          console.log('✅ Profile email matches stored user email');
+        }
+      }
       
       // Update stored user data with fresh data from server
       const currentUser = tokenService.getUser();

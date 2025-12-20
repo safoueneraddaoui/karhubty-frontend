@@ -18,6 +18,20 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log('📤 [API Request] URL:', config.url, '| Method:', config.method?.toUpperCase());
+    console.log('📤 [API Request] Full URL:', `${config.baseURL}${config.url}`);
+
+    // Extra debugging when calling agent car endpoints
+    if (config.url && (config.url.includes('/cars/agent') || config.url.includes('/cars/my-cars'))) {
+      try {
+        const authHeader = config.headers?.Authorization || config.headers?.authorization || '<<none>>';
+        console.log('🔐 [API Request] Cars request. Full URL:', `${config.baseURL || ''}${config.url}`);
+        console.log('🔐 [API Request] Authorization header exists:', !!authHeader);
+        console.log('🔐 [API Request] Method:', config.method?.toUpperCase());
+        console.log('🔐 [API Request] Headers:', config.headers);
+      } catch (err) {
+        console.warn('⚠️ Failed to log endpoint headers', err);
+      }
+    }
     
     // Skip token check for auth endpoints (login, register, forgot-password)
     const authEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/agent-requests'];

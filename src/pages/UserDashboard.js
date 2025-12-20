@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Star, XCircle, Eye, MessageSquare } from 'lucide-react';
+import rentalService from '../services/rentalService';
 
 const UserDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -17,68 +18,14 @@ const UserDashboard = ({ user }) => {
 
   const fetchUserRentals = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.get(`http://localhost:8080/api/rentals/user/${user.id}`);
-      
-      // Mock data
-      const mockRentals = [
-        {
-          rentalId: 1,
-          car: { 
-            carId: 1,
-            brand: 'Tesla', 
-            model: 'Model 3', 
-            pricePerDay: 85,
-            image: 'https://via.placeholder.com/400x300?text=Tesla+Model+3'
-          },
-          startDate: '2024-02-15',
-          endDate: '2024-02-20',
-          status: 'approved',
-          totalPrice: 425,
-          guaranteeAmount: 500,
-          requestDate: '2024-02-10',
-          hasReview: false
-        },
-        {
-          rentalId: 2,
-          car: { 
-            carId: 2,
-            brand: 'BMW', 
-            model: 'X5', 
-            pricePerDay: 120,
-            image: 'https://via.placeholder.com/400x300?text=BMW+X5'
-          },
-          startDate: '2024-01-15',
-          endDate: '2024-01-18',
-          status: 'completed',
-          totalPrice: 360,
-          guaranteeAmount: 600,
-          requestDate: '2024-01-10',
-          completionDate: '2024-01-18',
-          hasReview: true
-        },
-        {
-          rentalId: 3,
-          car: { 
-            carId: 3,
-            brand: 'Mercedes', 
-            model: 'E-Class', 
-            pricePerDay: 150,
-            image: 'https://via.placeholder.com/400x300?text=Mercedes+E-Class'
-          },
-          startDate: '2024-03-01',
-          endDate: '2024-03-05',
-          status: 'pending',
-          totalPrice: 750,
-          guaranteeAmount: 700,
-          requestDate: '2024-02-25'
-        }
-      ];
-      
-      setRentals(mockRentals);
+      setLoading(true);
+      const response = await rentalService.getUserRentals(user.id);
+      const rentalsData = response.data || response;
+      setRentals(Array.isArray(rentalsData) ? rentalsData : []);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching rentals:', error);
+      setRentals([]);
       setLoading(false);
     }
   };
@@ -86,13 +33,12 @@ const UserDashboard = ({ user }) => {
   const cancelRental = async (rentalId) => {
     if (window.confirm('Are you sure you want to cancel this rental?')) {
       try {
-        // TODO: Replace with actual API call
-        // await axios.put(`http://localhost:8080/api/rentals/${rentalId}/cancel`);
-        
+        await rentalService.cancelRental(rentalId);
         alert('Rental cancelled successfully');
         fetchUserRentals();
       } catch (error) {
-        alert('Failed to cancel rental. Please try again.');
+        console.error('Error cancelling rental:', error);
+        alert(error || 'Failed to cancel rental. Please try again.');
       }
     }
   };
@@ -314,80 +260,88 @@ const UserDashboard = ({ user }) => {
                 <div key={rental.rentalId} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex flex-col md:flex-row gap-4">
                     {/* Car Image */}
-                    <img 
-                      src={rental.car.image} 
-                      alt={`${rental.car.brand} ${rental.car.model}`}
-                      className="w-full md:w-48 h-32 object-cover rounded-lg"
-                    />
+                    {rental.car && (
+                      <img 
+                        src={rental.car.image || '/placeholder-car.jpg'} 
+                        alt={`${rental.car.brand} ${rental.car.model}`}
+                        className="w-full md:w-48 h-32 object-cover rounded-lg"
+                      />
+                    )}
                     
                     {/* Rental Details */}
                     <div className="flex-1">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-800">{rental.car.brand} {rental.car.model}</h3>
-                          <p className="text-sm text-gray-600">€{rental.car.pricePerDay}/day</p>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium border flex items-center gap-1 ${getStatusColor(rental.status)}`}>
-                          {getStatusIcon(rental.status)}
-                          {rental.status}
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600 mb-3">
-                        <div>
-                          <span className="font-medium">Pick-up:</span> {rental.startDate}
-                        </div>
-                        <div>
-                          <span className="font-medium">Drop-off:</span> {rental.endDate}
-                        </div>
-                        <div>
-                          <span className="font-medium">Requested:</span> {rental.requestDate}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-lg font-bold text-sky-600">€{rental.totalPrice}</p>
-                          <p className="text-xs text-gray-500">Guarantee: €{rental.guaranteeAmount}</p>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => navigate(`/cars/${rental.car.carId}`)}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View Car
-                          </button>
-                          
-                          {rental.status === 'pending' && (
-                            <button
-                              onClick={() => cancelRental(rental.rentalId)}
-                              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Cancel
-                            </button>
-                          )}
-                          
-                          {rental.status === 'completed' && !rental.hasReview && (
-                            <button
-                              onClick={() => openReviewModal(rental)}
-                              className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors flex items-center gap-1"
-                            >
-                              <MessageSquare className="w-4 h-4" />
-                              Add Review
-                            </button>
-                          )}
-                          
-                          {rental.status === 'completed' && rental.hasReview && (
-                            <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
-                              <Star className="w-4 h-4" />
-                              Reviewed
+                      {rental.car ? (
+                        <>
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800">{rental.car.brand} {rental.car.model}</h3>
+                              <p className="text-sm text-gray-600">€{rental.car.pricePerDay}/day</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium border flex items-center gap-1 ${getStatusColor(rental.status)}`}>
+                              {getStatusIcon(rental.status)}
+                              {rental.status}
                             </span>
-                          )}
-                        </div>
-                      </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600 mb-3">
+                            <div>
+                              <span className="font-medium">Pick-up:</span> {rental.startDate}
+                            </div>
+                            <div>
+                              <span className="font-medium">Drop-off:</span> {rental.endDate}
+                            </div>
+                            <div>
+                              <span className="font-medium">Requested:</span> {rental.requestDate}
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-lg font-bold text-sky-600">€{rental.totalPrice}</p>
+                              <p className="text-xs text-gray-500">Guarantee: €{rental.guaranteeAmount}</p>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => navigate(`/cars/${rental.car.carId}`)}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View Car
+                              </button>
+                              
+                              {rental.status === 'pending' && (
+                                <button
+                                  onClick={() => cancelRental(rental.rentalId)}
+                                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  Cancel
+                                </button>
+                              )}
+                              
+                              {rental.status === 'completed' && !rental.hasReview && (
+                                <button
+                                  onClick={() => openReviewModal(rental)}
+                                  className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors flex items-center gap-1"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                  Add Review
+                                </button>
+                              )}
+                              
+                              {rental.status === 'completed' && rental.hasReview && (
+                                <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
+                                  <Star className="w-4 h-4" />
+                                  Reviewed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">Car information not available</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -402,9 +356,13 @@ const UserDashboard = ({ user }) => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full">
             <h3 className="text-xl font-bold text-gray-800 mb-4">Write a Review</h3>
-            <p className="text-gray-600 mb-4">
-              {selectedRental.car.brand} {selectedRental.car.model}
-            </p>
+            {selectedRental.car ? (
+              <p className="text-gray-600 mb-4">
+                {selectedRental.car.brand} {selectedRental.car.model}
+              </p>
+            ) : (
+              <p className="text-gray-500 mb-4">Rental</p>
+            )}
             
             {/* Rating */}
             <div className="mb-4">

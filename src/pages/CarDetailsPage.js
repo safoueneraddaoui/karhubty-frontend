@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, Users, Fuel, Settings2, Calendar, Shield, ArrowLeft, Check } from 'lucide-react';
+import carService from '../services/carService';
+import rentalService from '../services/rentalService';
 
 const CarDetailsPage = ({ user }) => {
   const { carId } = useParams();
@@ -20,54 +22,14 @@ const CarDetailsPage = ({ user }) => {
 
   const fetchCarDetails = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.get(`http://localhost:8080/api/cars/${carId}`);
-      
-      // Mock data
-      const mockCar = {
-        carId: parseInt(carId),
-        brand: 'Tesla',
-        model: 'Model 3',
-        year: 2024,
-        color: 'Pearl White',
-        licensePlate: 'AB-123-CD',
-        category: 'Electric',
-        pricePerDay: 85,
-        guaranteePrice: 500,
-        transmission: 'Automatic',
-        fuelType: 'Electric',
-        seats: 5,
-        averageRating: 4.9,
-        images: [
-          'https://via.placeholder.com/800x500?text=Tesla+Model+3+Front',
-          'https://via.placeholder.com/800x500?text=Tesla+Model+3+Interior',
-          'https://via.placeholder.com/800x500?text=Tesla+Model+3+Side'
-        ],
-        features: ['Autopilot', 'Glass Roof', 'Premium Sound', 'Navigation', 'Bluetooth', 'USB Ports'],
-        isAvailable: true,
-        agentName: 'Premium Rentals',
-        reviews: [
-          {
-            reviewId: 1,
-            userName: 'John Doe',
-            rating: 5,
-            comment: 'Amazing car! Very smooth drive and great features.',
-            reviewDate: '2024-01-15'
-          },
-          {
-            reviewId: 2,
-            userName: 'Jane Smith',
-            rating: 4,
-            comment: 'Good experience overall. The car was clean and well-maintained.',
-            reviewDate: '2024-01-10'
-          }
-        ]
-      };
-
-      setCar(mockCar);
+      setLoading(true);
+      const response = await carService.getCarById(carId);
+      const carData = response.data || response;
+      setCar(carData);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching car details:', error);
+      setCar(null);
       setLoading(false);
     }
   };
@@ -92,18 +54,34 @@ const CarDetailsPage = ({ user }) => {
 
   const submitBooking = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.post('http://localhost:8080/api/rentals', {
-      //   carId: car.carId,
-      //   startDate: bookingData.startDate,
-      //   endDate: bookingData.endDate
-      // });
+      // Validate dates
+      if (!bookingData.startDate || !bookingData.endDate) {
+        alert('Please select both start and end dates');
+        return;
+      }
+
+      const start = new Date(bookingData.startDate);
+      const end = new Date(bookingData.endDate);
+      
+      if (end <= start) {
+        alert('End date must be after start date');
+        return;
+      }
+
+      const rentalData = {
+        carId: parseInt(car.id || car.carId),
+        startDate: bookingData.startDate,
+        endDate: bookingData.endDate
+      };
+
+      await rentalService.createRental(rentalData);
       
       alert('Booking request submitted successfully! The agent will review and approve your request.');
       setShowBookingModal(false);
-      navigate('/dashboard');
+      navigate('/user-dashboard');
     } catch (error) {
-      alert('Booking failed. Please try again.');
+      console.error('Booking error:', error);
+      alert(error || 'Booking failed. Please try again.');
     }
   };
 
@@ -149,20 +127,22 @@ const CarDetailsPage = ({ user }) => {
             {/* Image Gallery */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
               <img 
-                src={car.images[0]} 
+                src={car.images?.[0] || '/placeholder-car.jpg'} 
                 alt={`${car.brand} ${car.model}`}
                 className="w-full h-96 object-cover"
               />
-              <div className="grid grid-cols-3 gap-2 p-4">
-                {car.images.slice(1).map((image, index) => (
-                  <img 
-                    key={index}
-                    src={image} 
-                    alt={`${car.brand} ${car.model} ${index + 2}`}
-                    className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
-                  />
-                ))}
-              </div>
+              {car.images && car.images.length > 1 && (
+                <div className="grid grid-cols-3 gap-2 p-4">
+                  {car.images.slice(1).map((image, index) => (
+                    <img 
+                      key={index}
+                      src={image} 
+                      alt={`${car.brand} ${car.model} ${index + 2}`}
+                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Car Info */}
@@ -174,7 +154,7 @@ const CarDetailsPage = ({ user }) => {
                 </div>
                 <div className="flex items-center bg-yellow-50 px-3 py-2 rounded-lg">
                   <Star className="w-5 h-5 text-yellow-500 fill-current mr-1" />
-                  <span className="text-lg font-semibold">{car.averageRating}</span>
+                  <span className="text-lg font-semibold">{car.averageRating || 'N/A'}</span>
                 </div>
               </div>
 
@@ -197,36 +177,42 @@ const CarDetailsPage = ({ user }) => {
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">Features</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {car.features.map((feature, index) => (
-                    <div key={index} className="flex items-center text-gray-600">
-                      <Check className="w-4 h-4 mr-2 text-green-500" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
+              {car.features && car.features.length > 0 && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Features</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {car.features.map((feature, index) => (
+                      <div key={index} className="flex items-center text-gray-600">
+                        <Check className="w-4 h-4 mr-2 text-green-500" />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Reviews */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Reviews</h3>
               <div className="space-y-4">
-                {car.reviews.map(review => (
-                  <div key={review.reviewId} className="border-b pb-4 last:border-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-semibold text-gray-800">{review.userName}</p>
-                      <div className="flex items-center">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
-                        <span className="font-semibold">{review.rating}</span>
+                {car.reviews && car.reviews.length > 0 ? (
+                  car.reviews.map(review => (
+                    <div key={review.reviewId} className="border-b pb-4 last:border-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="font-semibold text-gray-800">{review.userName}</p>
+                        <div className="flex items-center">
+                          <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
+                          <span className="font-semibold">{review.rating}</span>
+                        </div>
                       </div>
+                      <p className="text-gray-600 text-sm mb-1">{review.comment}</p>
+                      <p className="text-gray-400 text-xs">{new Date(review.reviewDate).toLocaleDateString()}</p>
                     </div>
-                    <p className="text-gray-600 text-sm mb-1">{review.comment}</p>
-                    <p className="text-gray-400 text-xs">{new Date(review.reviewDate).toLocaleDateString()}</p>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No reviews yet</p>
+                )}
               </div>
             </div>
           </div>

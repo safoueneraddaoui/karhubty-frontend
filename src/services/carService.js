@@ -22,6 +22,65 @@ const carService = {
   },
 
   /**
+   * Get agent's own cars only
+   * @returns {Promise} Array of agent's cars
+   */
+  getAgentCars: async () => {
+    try {
+      console.log('🚗 carService.getAgentCars() - Fetching agent cars');
+      
+      // Get agent ID from localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const agentId = parseInt(user?.id || user?.userId || 0, 10);
+      
+      console.log('📍 Agent ID:', agentId);
+      
+      if (!agentId) {
+        console.warn('⚠️ No agent ID found');
+        return [];
+      }
+      
+      // Fetch all cars and filter by agentId
+      const response = await api.get('/cars');
+      console.log('✅ carService.getAgentCars() - Got all cars:', response.data);
+      
+      let allCars = response.data.data || response.data;
+      if (!Array.isArray(allCars)) {
+        allCars = [allCars];
+      }
+      
+      // Filter cars by agent
+      const agentCars = allCars.filter(car => {
+        const carAgentId = parseInt(car.agentId || car.agent?.id || 0, 10);
+        return carAgentId === agentId;
+      });
+      
+      console.log('✅ Filtered to agent cars:', agentCars.length);
+      return agentCars;
+    } catch (error) {
+      console.error('❌ carService.getAgentCars() - Error:', error.message);
+      throw error.response?.data?.message || 'Failed to fetch agent cars';
+    }
+  },
+
+  /**
+   * Get all available cars for users to browse and reserve
+   * @returns {Promise} Array of available cars
+   */
+  getAllAvailableCars: async () => {
+    try {
+      console.log('🚗 carService.getAllAvailableCars() - Fetching all available cars');
+      const response = await api.get('/cars');
+      console.log('✅ carService.getAllAvailableCars() - Success:', response.data);
+      const data = response.data.data || response.data;
+      return Array.isArray(data) ? data : [data];
+    } catch (error) {
+      console.error('❌ carService.getAllAvailableCars() - Error:', error.message);
+      throw error.response?.data?.message || 'Failed to fetch available cars';
+    }
+  },
+
+  /**
    * Get car by ID
    * @param {number} carId - Car ID
    * @returns {Promise} Car details
@@ -157,6 +216,25 @@ const carService = {
       console.error('❌ carService.deleteCar() - Error:', error);
       console.error('Error response:', error.response?.data);
       throw error.response?.data?.message || error.message || 'Failed to delete car';
+    }
+  },
+
+  /**
+   * Update car availability status
+   * @param {number} carId - Car ID
+   * @param {boolean} isAvailable - Availability status
+   * @returns {Promise} Updated car data
+   */
+  updateCarAvailability: async (carId, isAvailable) => {
+    try {
+      console.log('🚗 carService.updateCarAvailability() - Setting car', carId, 'available:', isAvailable);
+      const response = await api.put(`/cars/${carId}/availability`, { isAvailable });
+      console.log('✅ carService.updateCarAvailability() - Success:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ carService.updateCarAvailability() - Error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error.response?.data?.message || error.message || 'Failed to update car availability';
     }
   },
 };

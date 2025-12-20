@@ -29,7 +29,8 @@ const CarsPage = ({ user }) => {
   const fetchCars = async () => {
     try {
       setLoading(true);
-      const response = await carService.getAllCars();
+      // Fetch all available cars for users
+      const response = await carService.getAllAvailableCars();
       const carsArray = Array.isArray(response) ? response : response.data || [];
       setCars(carsArray);
     } catch (error) {

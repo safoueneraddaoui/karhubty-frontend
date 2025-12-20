@@ -10,6 +10,7 @@ const AgentDashboard = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [showCarModal, setShowCarModal] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const [carFormData, setCarFormData] = useState({
     brand: '',
     model: '',
@@ -29,24 +30,27 @@ const AgentDashboard = ({ user }) => {
 
   useEffect(() => {
     fetchAgentData();
+    // Poll for pending rentals every 30 seconds
+    const interval = setInterval(() => {
+      fetchPendingCount();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchAgentData = async () => {
     try {
       setLoading(true);
       
-      // Fetch all cars (agent will see their own cars from backend)
-      const carsResponse = await carService.getAllCars();
-      const carsData = carsResponse.data || carsResponse;
-      setCars(Array.isArray(carsData) ? carsData : []);
+      // Fetch agent's own cars only
+      const carsResponse = await carService.getAgentCars();
+      setCars(Array.isArray(carsResponse) ? carsResponse : []);
       
       // Fetch rentals for agent
-      // const rentalsResponse = await rentalService.getAgentRentals(user.id);
-      // const rentalsData = rentalsResponse.data || rentalsResponse;
-      // setRentals(Array.isArray(rentalsData) ? rentalsData : []);
+      const rentalsResponse = await rentalService.getAgentRentals();
+      setRentals(Array.isArray(rentalsResponse) ? rentalsResponse : []);
       
-      // Mock rentals for now (until rental endpoint is ready)
-      setRentals([]);
+      // Fetch pending count
+      await fetchPendingCount();
       
       setLoading(false);
     } catch (error) {
@@ -54,6 +58,17 @@ const AgentDashboard = ({ user }) => {
       setCars([]);
       setRentals([]);
       setLoading(false);
+    }
+  };
+
+  const fetchPendingCount = async () => {
+    try {
+      const response = await rentalService.getPendingRentalsCount();
+      const count = response.count || response.data?.count || 0;
+      setPendingCount(count);
+    } catch (error) {
+      console.error('Error fetching pending count:', error);
+      setPendingCount(0);
     }
   };
 
@@ -66,12 +81,26 @@ const AgentDashboard = ({ user }) => {
   const approveRental = async (rentalId) => {
     if (window.confirm('Approve this rental request?')) {
       try {
-        // TODO: API call
-        // await axios.put(`http://localhost:8080/api/rentals/${rentalId}/approve`);
+        await rentalService.approveRental(rentalId);
         alert('Rental approved successfully!');
+        
+        // Find the rental to get car info
+        const rental = rentals.find(r => r.rentalId === rentalId);
+        if (rental && rental.car) {
+          // Mark car as unavailable
+          try {
+            await carService.updateCarAvailability(rental.car.carId || rental.car.id, false);
+            console.log('✅ Car marked as unavailable');
+          } catch (err) {
+            console.warn('⚠️ Could not update car availability:', err);
+            // Don't fail the whole operation if this fails
+          }
+        }
+        
         fetchAgentData();
       } catch (error) {
-        alert('Failed to approve rental');
+        console.error('Error approving rental:', error);
+        alert(error || 'Failed to approve rental');
       }
     }
   };
@@ -79,12 +108,12 @@ const AgentDashboard = ({ user }) => {
   const rejectRental = async (rentalId) => {
     if (window.confirm('Reject this rental request?')) {
       try {
-        // TODO: API call
-        // await axios.put(`http://localhost:8080/api/rentals/${rentalId}/reject`);
+        await rentalService.rejectRental(rentalId);
         alert('Rental rejected');
         fetchAgentData();
       } catch (error) {
-        alert('Failed to reject rental');
+        console.error('Error rejecting rental:', error);
+        alert(error || 'Failed to reject rental');
       }
     }
   };
@@ -233,8 +262,18 @@ const AgentDashboard = ({ user }) => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Agency Dashboard</h1>
-          <p className="text-gray-600">Manage your fleet and rental requests</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">Agency Dashboard</h1>
+              <p className="text-gray-600">Manage your fleet and rental requests</p>
+            </div>
+            {pendingCount > 0 && (
+              <div className="bg-red-100 border-2 border-red-300 rounded-lg p-4 text-center">
+                <p className="text-red-800 font-bold text-sm">🔔 New Requests</p>
+                <p className="text-3xl font-bold text-red-600">{pendingCount}</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -327,10 +366,15 @@ const AgentDashboard = ({ user }) => {
                 </button>
                 <button 
                   onClick={() => setActiveTab('rentals')}
-                  className="bg-sky-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-sky-800 transition-colors border-2 border-white flex items-center gap-2"
+                  className="bg-sky-700 text-white px-6 py-3 rounded-lg font-semibold hover:bg-sky-800 transition-colors border-2 border-white flex items-center gap-2 relative"
                 >
                   <Calendar className="w-5 h-5" />
                   View Rental Requests
+                  {pendingCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse">
+                      {pendingCount}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -343,10 +387,10 @@ const AgentDashboard = ({ user }) => {
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-semibold text-gray-800">
-                        {rental.user.firstName} {rental.user.lastName}
+                        {rental.user ? `${rental.user.firstName} ${rental.user.lastName}` : 'Unknown User'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        {rental.car.brand} {rental.car.model} • {rental.startDate} to {rental.endDate}
+                        {rental.car ? `${rental.car.brand} ${rental.car.model}` : 'Unknown Car'} • {rental.startDate} to {rental.endDate}
                       </p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(rental.status)}`}>
@@ -447,11 +491,11 @@ const AgentDashboard = ({ user }) => {
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <h3 className="font-bold text-gray-800">{rental.car.brand} {rental.car.model}</h3>
+                            <h3 className="font-bold text-gray-800">{rental.car ? `${rental.car.brand} ${rental.car.model}` : 'Unknown Car'}</h3>
                             <p className="text-sm text-gray-600">
-                              Customer: {rental.user.firstName} {rental.user.lastName}
+                              Customer: {rental.user ? `${rental.user.firstName} ${rental.user.lastName}` : 'Unknown User'}
                             </p>
-                            <p className="text-sm text-gray-600">{rental.user.email}</p>
+                            <p className="text-sm text-gray-600">{rental.user?.email || 'N/A'}</p>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(rental.status)}`}>
                             {rental.status}
