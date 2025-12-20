@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
+import carService from '../services/carService';
+import rentalService from '../services/rentalService';
 
 const AgentDashboard = ({ user }) => {
   const [cars, setCars] = useState([]);
@@ -31,80 +33,26 @@ const AgentDashboard = ({ user }) => {
 
   const fetchAgentData = async () => {
     try {
-      // TODO: Replace with actual API calls
-      // const carsResponse = await axios.get(`http://localhost:8080/api/cars/agent/${user.id}`);
-      // const rentalsResponse = await axios.get(`http://localhost:8080/api/rentals/agent/${user.id}`);
+      setLoading(true);
       
-      // Mock data
-      const mockCars = [
-        { 
-          carId: 1, 
-          brand: 'Tesla', 
-          model: 'Model 3', 
-          year: 2024,
-          pricePerDay: 85, 
-          guaranteePrice: 500,
-          isAvailable: true,
-          category: 'Electric',
-          transmission: 'Automatic',
-          seats: 5,
-          image: 'https://via.placeholder.com/400x300?text=Tesla+Model+3'
-        },
-        { 
-          carId: 2, 
-          brand: 'BMW', 
-          model: 'X5', 
-          year: 2023,
-          pricePerDay: 120, 
-          guaranteePrice: 600,
-          isAvailable: true,
-          category: 'SUV',
-          transmission: 'Automatic',
-          seats: 7,
-          image: 'https://via.placeholder.com/400x300?text=BMW+X5'
-        }
-      ];
+      // Fetch all cars (agent will see their own cars from backend)
+      const carsResponse = await carService.getAllCars();
+      const carsData = carsResponse.data || carsResponse;
+      setCars(Array.isArray(carsData) ? carsData : []);
       
-      const mockRentals = [
-        { 
-          rentalId: 1, 
-          car: { brand: 'Tesla', model: 'Model 3', carId: 1 }, 
-          user: { firstName: 'John', lastName: 'Doe', email: 'john@example.com' }, 
-          startDate: '2024-02-15', 
-          endDate: '2024-02-20',
-          status: 'pending', 
-          totalPrice: 425,
-          requestDate: '2024-02-10'
-        },
-        { 
-          rentalId: 2, 
-          car: { brand: 'BMW', model: 'X5', carId: 2 }, 
-          user: { firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com' }, 
-          startDate: '2024-02-01', 
-          endDate: '2024-02-05',
-          status: 'approved', 
-          totalPrice: 600,
-          requestDate: '2024-01-25',
-          approvalDate: '2024-01-26'
-        },
-        { 
-          rentalId: 3, 
-          car: { brand: 'Tesla', model: 'Model 3', carId: 1 }, 
-          user: { firstName: 'Bob', lastName: 'Johnson', email: 'bob@example.com' }, 
-          startDate: '2024-01-10', 
-          endDate: '2024-01-15',
-          status: 'completed', 
-          totalPrice: 425,
-          requestDate: '2024-01-05',
-          completionDate: '2024-01-15'
-        }
-      ];
+      // Fetch rentals for agent
+      // const rentalsResponse = await rentalService.getAgentRentals(user.id);
+      // const rentalsData = rentalsResponse.data || rentalsResponse;
+      // setRentals(Array.isArray(rentalsData) ? rentalsData : []);
       
-      setCars(mockCars);
-      setRentals(mockRentals);
+      // Mock rentals for now (until rental endpoint is ready)
+      setRentals([]);
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching agent data:', error);
+      setCars([]);
+      setRentals([]);
       setLoading(false);
     }
   };
@@ -171,36 +119,54 @@ const AgentDashboard = ({ user }) => {
   const handleCarSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate images
-    if (carImages.length === 0) {
-      alert('Please upload at least 1 image for the car');
-      return;
-    }
-    
     try {
-      // TODO: Create FormData for image upload
-      // const formData = new FormData();
-      // Object.keys(carFormData).forEach(key => {
-      //   formData.append(key, carFormData[key]);
-      // });
-      // carImages.forEach((image, index) => {
-      //   formData.append('images', image);
-      // });
+      const carData = {
+        brand: carFormData.brand,
+        model: carFormData.model,
+        year: parseInt(carFormData.year),
+        color: carFormData.color,
+        licensePlate: carFormData.licensePlate,
+        fuelType: carFormData.fuelType,
+        transmission: carFormData.transmission,
+        seats: parseInt(carFormData.seats),
+        pricePerDay: parseFloat(carFormData.pricePerDay) || 0,
+        guaranteePrice: parseFloat(carFormData.guaranteePrice) || 0,
+        category: carFormData.category,
+        features: Array.isArray(carFormData.features) ? carFormData.features : []
+      };
+      
+      // Validate required fields
+      if (!carData.brand || !carData.model || !carData.licensePlate) {
+        alert('Please fill in all required fields (Brand, Model, License Plate)');
+        return;
+      }
+      
+      if (carData.pricePerDay <= 0) {
+        alert('Price per day must be greater than 0');
+        return;
+      }
+      
+      if (carData.guaranteePrice < 0) {
+        alert('Guarantee price must be 0 or greater');
+        return;
+      }
       
       if (editingCar) {
-        // TODO: Update car API call
-        // await axios.put(`http://localhost:8080/api/cars/${editingCar.carId}`, formData);
+        // Update car
+        await carService.modifyCar(editingCar.id || editingCar.carId, carData);
         alert('Car updated successfully!');
       } else {
-        // TODO: Add car API call
-        // await axios.post(`http://localhost:8080/api/cars`, formData);
+        // Add new car
+        await carService.addCar(carData);
         alert('Car added successfully!');
       }
+      
       setShowCarModal(false);
       setCarImages([]);
       fetchAgentData();
     } catch (error) {
-      alert('Failed to save car');
+      console.error('Error saving car:', error);
+      alert(error || 'Failed to save car. Please try again.');
     }
   };
 
@@ -220,12 +186,12 @@ const AgentDashboard = ({ user }) => {
   const deleteCar = async (carId) => {
     if (window.confirm('Are you sure you want to delete this car?')) {
       try {
-        // TODO: API call
-        // await axios.delete(`http://localhost:8080/api/cars/${carId}`);
+        await carService.deleteCar(carId);
         alert('Car deleted successfully');
         fetchAgentData();
       } catch (error) {
-        alert('Failed to delete car');
+        console.error('Error deleting car:', error);
+        alert(error || 'Failed to delete car');
       }
     }
   };
@@ -712,10 +678,6 @@ const AgentDashboard = ({ user }) => {
                       </div>
                     ))}
                   </div>
-                )}
-                
-                {carImages.length === 0 && (
-                  <p className="text-xs text-red-500 mt-2">⚠️ At least 1 image is required</p>
                 )}
               </div>
               

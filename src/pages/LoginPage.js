@@ -39,13 +39,20 @@ const LoginPage = ({ onLogin }) => {
       console.log('🔐 Login response (full):', userData);
       console.log('🔐 Response keys:', Object.keys(userData));
       
+      // Check if agent/agentadmin is approved
+      if ((userData.role === 'agent' || userData.role === 'agentadmin') && userData.isActive === false) {
+        setError('Your agent account is not approved yet. Please wait for admin approval.');
+        setLoading(false);
+        return;
+      }
+      
       // authService now handles token storage automatically
       onLogin(userData);
       
       // Redirect based on user role
       if (userData.role === 'user') {
         navigate('/user-dashboard');
-      } else if (userData.role === 'agent') {
+      } else if (userData.role === 'agent' || userData.role === 'agentadmin') {
         navigate('/agent-dashboard');
       } else if (userData.role === 'superadmin') {
         navigate('/superadmin-dashboard');

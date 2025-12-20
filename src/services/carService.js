@@ -104,6 +104,61 @@ const carService = {
       throw error.response?.data?.message || 'Failed to fetch cars by category';
     }
   },
+
+  /**
+   * Add a new car (Agent Admin only)
+   * @param {Object} carData - Car details { brand, model, year, dailyRate, category, transmission, fuelType, seats, features, imageUrl, description }
+   * @returns {Promise} Created car data
+   */
+  addCar: async (carData) => {
+    try {
+      console.log('🚗 carService.addCar() - Adding new car:', carData);
+      const response = await api.post('/cars', carData);
+      console.log('✅ carService.addCar() - Success:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ carService.addCar() - Error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error.response?.data?.message || error.message || 'Failed to add car';
+    }
+  },
+
+  /**
+   * Update/modify a car (Agent Admin only)
+   * @param {number} carId - Car ID
+   * @param {Object} carData - Updated car details
+   * @returns {Promise} Updated car data
+   */
+  modifyCar: async (carId, carData) => {
+    try {
+      console.log('🚗 carService.modifyCar() - Updating car:', carId, carData);
+      const response = await api.put(`/cars/${carId}`, carData);
+      console.log('✅ carService.modifyCar() - Success:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ carService.modifyCar() - Error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error.response?.data?.message || error.message || 'Failed to update car';
+    }
+  },
+
+  /**
+   * Delete a car (Agent Admin only)
+   * @param {number} carId - Car ID
+   * @returns {Promise} Success message
+   */
+  deleteCar: async (carId) => {
+    try {
+      console.log('🚗 carService.deleteCar() - Deleting car:', carId);
+      const response = await api.delete(`/cars/${carId}`);
+      console.log('✅ carService.deleteCar() - Success:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ carService.deleteCar() - Error:', error);
+      console.error('Error response:', error.response?.data);
+      throw error.response?.data?.message || error.message || 'Failed to delete car';
+    }
+  },
 };
 
 export default carService;
