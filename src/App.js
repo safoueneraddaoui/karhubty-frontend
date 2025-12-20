@@ -6,6 +6,8 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ServicesPage from './pages/ServicesPage';
+import AboutPage from './pages/AboutPage';
 import CarsPage from './pages/CarsPage';
 import CarDetailsPage from './pages/CarDetailsPage';
 import UserDashboard from './pages/UserDashboard';
@@ -13,9 +15,16 @@ import AgentDashboard from './pages/AgentDashboard';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AgentRequestPage from './pages/AgentRequestPage';
 import ProfilePage from './pages/ProfilePage';
+import ReservedCarsPage from './pages/ReservedCarsPage';
+import authService from './services/authService';
+import tokenService from './services/tokenService';
 
 // Protected Route Component
-const ProtectedRoute = ({ user, allowedRoles, children }) => {
+const ProtectedRoute = ({ user, isLoading, allowedRoles, children }) => {
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div></div>;
+  }
+  
   if (!user) {
     return <Navigate to="/login" />;
   }
@@ -29,23 +38,32 @@ const ProtectedRoute = ({ user, allowedRoles, children }) => {
 
 function App() {
   const [user, setUser] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  // Load user from localStorage on mount
+  // Load user from tokenService on mount
   React.useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    console.log('🔄 [App] Initializing auth state from tokenService');
+    const storedUser = tokenService.getUser();
+    if (storedUser && tokenService.isAuthenticated()) {
+      console.log('✅ [App] User found in tokenService, restoring session:', storedUser.id);
+      setUser(storedUser);
+    } else {
+      console.log('⚠️ [App] No authenticated user found');
     }
+    setIsLoading(false);
   }, []);
 
   const handleLogin = (userData) => {
+    console.log('🔐 [App] handleLogin called with user:', userData.id);
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    // Token is already saved by authService, but ensure user state is synced
+    tokenService.setUser(userData);
   };
 
   const handleLogout = () => {
+    console.log('🔓 [App] handleLogout called');
     setUser(null);
-    localStorage.removeItem('user');
+    tokenService.clearAuth();
   };
 
   return (
@@ -55,6 +73,8 @@ function App() {
         <main className="flex-grow pt-16">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -64,25 +84,31 @@ function App() {
             
             {/* Protected Routes */}
             <Route path="/profile" element={
-              <ProtectedRoute user={user}>
+              <ProtectedRoute user={user} isLoading={isLoading}>
                 <ProfilePage user={user} setUser={setUser} />
               </ProtectedRoute>
             } />
             
+            <Route path="/reserved-cars" element={
+              <ProtectedRoute user={user} isLoading={isLoading} allowedRoles={['user']}>
+                <ReservedCarsPage user={user} />
+              </ProtectedRoute>
+            } />
+            
             <Route path="/user-dashboard" element={
-              <ProtectedRoute user={user} allowedRoles={['user']}>
+              <ProtectedRoute user={user} isLoading={isLoading} allowedRoles={['user']}>
                 <UserDashboard user={user} />
               </ProtectedRoute>
             } />
             
             <Route path="/agent-dashboard" element={
-              <ProtectedRoute user={user} allowedRoles={['agent']}>
+              <ProtectedRoute user={user} isLoading={isLoading} allowedRoles={['agent']}>
                 <AgentDashboard user={user} />
               </ProtectedRoute>
             } />
             
             <Route path="/superadmin-dashboard" element={
-              <ProtectedRoute user={user} allowedRoles={['superadmin']}>
+              <ProtectedRoute user={user} isLoading={isLoading} allowedRoles={['superadmin']}>
                 <SuperAdminDashboard user={user} />
               </ProtectedRoute>
             } />

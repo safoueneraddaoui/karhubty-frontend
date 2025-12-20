@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, Eye, Users, TrendingUp } from 'lucide-react';
+import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 
 const AgentDashboard = ({ user }) => {
   const [cars, setCars] = useState([]);

@@ -1,4 +1,5 @@
 import api from './api';
+import tokenService from './tokenService';
 
 const authService = {
   /**
@@ -8,10 +9,93 @@ const authService = {
    */
   login: async (credentials) => {
     try {
+      console.log('🔐 [AuthService] Logging in with email:', credentials.email);
       const response = await api.post('/auth/login', credentials);
-      return response.data;
+      console.log('🔐 [AuthService] Login response received:', response.data);
+      
+      // Handle different response structures
+      // Backend returns: { success: true, user: { token, id, email, ... } }
+      const userData = response.data.user || response.data.data || response.data;
+      
+      console.log('🔍 [AuthService] Login response structure:', Object.keys(response.data));
+      console.log('🔍 [AuthService] User data:', userData);
+      
+      // Extract token from response (handle different field names)
+      const token = userData.token || userData.accessToken || userData.access_token || response.data.token;
+      
+      if (!token) {
+        console.error('❌ [AuthService] No token in login response!');
+        console.error('Response.data:', response.data);
+        console.error('userData:', userData);
+        console.error('Available fields in response.data:', Object.keys(response.data));
+        console.error('Available fields in userData:', userData ? Object.keys(userData) : 'userData is null');
+        
+        // Check if there's a token in the response headers
+        const headerToken = response.headers['authorization'] || response.headers['Authorization'];
+        if (headerToken) {
+          console.log('✅ [AuthService] Token found in response headers');
+          const extractedToken = headerToken.replace('Bearer ', '');
+          console.log('   - Token length:', extractedToken.length);
+          console.log('   - Token (first 30 chars):', extractedToken.substring(0, 30) + '...');
+          
+          // Use the token from headers
+          const userToStore = {
+            id: userData.userId || userData.id,
+            email: userData.email,
+            role: userData.role,
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            phone: userData.phone || '',
+            address: userData.address || '',
+            city: userData.city || '',
+            agencyName: userData.agencyName || '',
+            agencyAddress: userData.agencyAddress || '',
+            token: extractedToken
+          };
+          
+          tokenService.setUser(userToStore);
+          tokenService.setToken(extractedToken);
+          
+          console.log('🔐 [AuthService] User stored with token from headers:', userToStore.id);
+          return userToStore;
+        }
+        
+        throw new Error('No authentication token received from server. Please check backend login response.');
+      }
+      
+      console.log('✅ [AuthService] Token found in response');
+      console.log('   - Token length:', token.length);
+      console.log('   - Token (first 30 chars):', token.substring(0, 30) + '...');
+      console.log('✅ [AuthService] Token found in response');
+      console.log('   - Token length:', token.length);
+      console.log('   - Token (first 30 chars):', token.substring(0, 30) + '...');
+      
+      // Use tokenService to save user and token
+      // Backend uses userId, but we normalize to id
+      const userToStore = {
+        id: userData.userId || userData.id,
+        email: userData.email,
+        role: userData.role,
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        phone: userData.phone || '',
+        address: userData.address || '',
+        city: userData.city || '',
+        agencyName: userData.agencyName || '',
+        agencyAddress: userData.agencyAddress || '',
+        token: token // Store token in user object
+      };
+      
+      // Save to tokenService (which also saves to localStorage)
+      tokenService.setUser(userToStore);
+      tokenService.setToken(token);
+      
+      console.log('🔐 [AuthService] User stored in tokenService:', userToStore.id);
+      
+      return userToStore;
     } catch (error) {
-      throw error.response?.data?.message || 'Login failed';
+      console.error('🔐 [AuthService] Login error:', error);
+      throw error.response?.data?.message || error.message || 'Login failed';
     }
   },
 
@@ -23,9 +107,15 @@ const authService = {
   registerUser: async (userData) => {
     try {
       const response = await api.post('/auth/register/user', userData);
-      return response.data;
+      // Handle 204 No Content response
+      return response.data || { success: true, message: 'Registration successful' };
     } catch (error) {
-      throw error.response?.data?.message || 'Registration failed';
+      console.error('Register user error:', error);
+      // Better error handling for CORS and other errors
+      if (error.response?.status === 204) {
+        return { success: true, message: 'Registration successful' };
+      }
+      throw error.response?.data?.message || error.message || 'Registration failed';
     }
   },
 
@@ -37,9 +127,15 @@ const authService = {
   registerAgent: async (agentData) => {
     try {
       const response = await api.post('/auth/register/agent', agentData);
-      return response.data;
+      // Handle 204 No Content response
+      return response.data || { success: true, message: 'Agent registration successful' };
     } catch (error) {
-      throw error.response?.data?.message || 'Agent registration failed';
+      console.error('Register agent error:', error);
+      // Better error handling for CORS and other errors
+      if (error.response?.status === 204) {
+        return { success: true, message: 'Agent registration successful' };
+      }
+      throw error.response?.data?.message || error.message || 'Agent registration failed';
     }
   },
 
@@ -93,17 +189,19 @@ const authService = {
    * Logout user (client-side only)
    */
   logout: () => {
-    localStorage.removeItem('user');
+    console.log('🔓 [AuthService] Logging out user');
+    tokenService.clearAuth();
     window.location.href = '/login';
   },
 
   /**
-   * Get current user from localStorage
+   * Get current user from tokenService
    * @returns {Object|null} User object or null
    */
   getCurrentUser: () => {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    const user = tokenService.getUser();
+    console.log('👤 [AuthService] getCurrentUser:', user ? `User ID: ${user.id}` : 'No user');
+    return user;
   },
 
   /**
@@ -111,8 +209,9 @@ const authService = {
    * @returns {boolean}
    */
   isAuthenticated: () => {
-    const user = localStorage.getItem('user');
-    return user !== null;
+    const isAuth = tokenService.isAuthenticated();
+    console.log(`🔑 [AuthService] isAuthenticated: ${isAuth}`);
+    return isAuth;
   },
 
   /**
@@ -122,8 +221,28 @@ const authService = {
    */
   hasRole: (role) => {
     const user = authService.getCurrentUser();
-    return user?.role === role;
+    const hasRole = user?.role === role;
+    console.log(`👮 [AuthService] hasRole(${role}): ${hasRole}`);
+    return hasRole;
   },
+
+  /**
+   * Update user data in tokenService
+   * @param {Object} updates - Partial user updates
+   * @returns {Object|null} Updated user object
+   */
+  updateUser: (updates) => {
+    console.log('📝 [AuthService] Updating user data');
+    return tokenService.updateUser(updates);
+  },
+
+  /**
+   * Get valid auth token
+   * @returns {string|null} Auth token or null
+   */
+  getToken: () => {
+    return tokenService.getToken();
+  }
 };
 
 export default authService;

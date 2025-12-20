@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building2, Mail, Phone, MapPin, FileText, Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { Building2, Mail, Phone, MapPin, Upload, AlertCircle, CheckCircle } from 'lucide-react';
 
 const AgentRequestPage = () => {
   const navigate = useNavigate();

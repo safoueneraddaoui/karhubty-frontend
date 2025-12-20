@@ -85,6 +85,20 @@ const rentalService = {
       throw error.response?.data?.message || 'Failed to check overlap';
     }
   },
+
+  /**
+   * Get user's rentals
+   * @param {number} userId - User ID
+   * @returns {Promise} Array of rentals
+   */
+  getUserRentals: async (userId) => {
+    try {
+      const response = await api.get(`/rentals/user/${userId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Failed to fetch user rentals';
+    }
+  },
 };
 
 export default rentalService;

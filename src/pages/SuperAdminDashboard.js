@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Building2, Car, BarChart3, CheckCircle, XCircle, Eye, Trash2, Shield, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, Building2, Car, CheckCircle, XCircle, Eye, Trash2, Shield, DollarSign } from 'lucide-react';
 
 const SuperAdminDashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState('overview');

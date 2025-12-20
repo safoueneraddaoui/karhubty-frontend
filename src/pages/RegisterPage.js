@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Mail, Lock, Phone, MapPin, Home, AlertCircle, CheckCircle, Building2 } from 'lucide-react';
+import authService from '../services/authService';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -67,24 +68,52 @@ const RegisterPage = () => {
       return;
     }
 
+    // Check for password strength (optional - adjust based on backend requirements)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
+    if (!passwordRegex.test(formData.password)) {
+      setError('Password must contain uppercase, lowercase, and numbers');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // TODO: Replace with actual API call
-      // const endpoint = accountType === 'user' 
-      //   ? 'http://localhost:8080/api/auth/register/user'
-      //   : 'http://localhost:8080/api/auth/register/agent';
-      // const response = await axios.post(endpoint, formData);
+      // Prepare data without confirmPassword - only send what API expects
+      const registrationData = accountType === 'user' 
+        ? {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city
+          }
+        : {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone,
+            agencyName: formData.agencyName,
+            agencyAddress: formData.agencyAddress,
+            city: formData.city
+          };
+
+      const endpoint = accountType === 'user' 
+        ? authService.registerUser
+        : authService.registerAgent;
       
-      // Simulated registration for demo
+      console.log('Registering with data:', registrationData);
+      await endpoint(registrationData);
+      setSuccess(true);
+      setLoading(false);
       setTimeout(() => {
-        setSuccess(true);
-        setLoading(false);
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      }, 1000);
+        navigate('/login');
+      }, 2000);
 
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      setError(err || 'Registration failed. Please try again.');
       setLoading(false);
     }
   };
@@ -261,6 +290,9 @@ const RegisterPage = () => {
                     required
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Minimum 6 characters, must include uppercase, lowercase, and numbers
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -355,7 +387,7 @@ const RegisterPage = () => {
                 className="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500 mt-1"
               />
               <label className="ml-2 text-sm text-gray-600">
-                I agree to the <a href="#" className="text-sky-600 hover:text-sky-700">Terms and Conditions</a> and <a href="#" className="text-sky-600 hover:text-sky-700">Privacy Policy</a>
+                I agree to the <Link to="/terms" className="text-sky-600 hover:text-sky-700">Terms and Conditions</Link> and <Link to="/privacy" className="text-sky-600 hover:text-sky-700">Privacy Policy</Link>
               </label>
             </div>
 

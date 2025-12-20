@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Star, Users, Fuel, Settings2, Calendar } from 'lucide-react';
+import carService from '../services/carService';
 
 const CarsPage = ({ user }) => {
   const navigate = useNavigate();
@@ -22,106 +23,19 @@ const CarsPage = ({ user }) => {
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, cars]);
 
   const fetchCars = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.get('http://localhost:8080/api/cars');
-      
-      // Mock data
-      const mockCars = [
-        {
-          carId: 1,
-          brand: 'Toyota',
-          model: 'Camry',
-          year: 2023,
-          category: 'Sedan',
-          pricePerDay: 50,
-          transmission: 'Automatic',
-          fuelType: 'Hybrid',
-          seats: 5,
-          averageRating: 4.5,
-          images: ['https://via.placeholder.com/400x300?text=Toyota+Camry'],
-          isAvailable: true
-        },
-        {
-          carId: 2,
-          brand: 'BMW',
-          model: 'X5',
-          year: 2023,
-          category: 'SUV',
-          pricePerDay: 120,
-          transmission: 'Automatic',
-          fuelType: 'Diesel',
-          seats: 7,
-          averageRating: 4.8,
-          images: ['https://via.placeholder.com/400x300?text=BMW+X5'],
-          isAvailable: true
-        },
-        {
-          carId: 3,
-          brand: 'Tesla',
-          model: 'Model 3',
-          year: 2024,
-          category: 'Electric',
-          pricePerDay: 85,
-          transmission: 'Automatic',
-          fuelType: 'Electric',
-          seats: 5,
-          averageRating: 4.9,
-          images: ['https://via.placeholder.com/400x300?text=Tesla+Model+3'],
-          isAvailable: true
-        },
-        {
-          carId: 4,
-          brand: 'Mercedes',
-          model: 'E-Class',
-          year: 2023,
-          category: 'Luxury',
-          pricePerDay: 150,
-          transmission: 'Automatic',
-          fuelType: 'Petrol',
-          seats: 5,
-          averageRating: 4.7,
-          images: ['https://via.placeholder.com/400x300?text=Mercedes+E-Class'],
-          isAvailable: true
-        },
-        {
-          carId: 5,
-          brand: 'Honda',
-          model: 'Civic',
-          year: 2023,
-          category: 'Compact',
-          pricePerDay: 40,
-          transmission: 'Manual',
-          fuelType: 'Petrol',
-          seats: 5,
-          averageRating: 4.3,
-          images: ['https://via.placeholder.com/400x300?text=Honda+Civic'],
-          isAvailable: true
-        },
-        {
-          carId: 6,
-          brand: 'Ford',
-          model: 'Mustang',
-          year: 2024,
-          category: 'Sports',
-          pricePerDay: 180,
-          transmission: 'Automatic',
-          fuelType: 'Petrol',
-          seats: 4,
-          averageRating: 4.9,
-          images: ['https://via.placeholder.com/400x300?text=Ford+Mustang'],
-          isAvailable: true
-        }
-      ];
-
-      setCars(mockCars);
-      setFilteredCars(mockCars);
-      setLoading(false);
+      setLoading(true);
+      const response = await carService.getAllCars();
+      const carsArray = Array.isArray(response) ? response : response.data || [];
+      setCars(carsArray);
     } catch (error) {
       console.error('Error fetching cars:', error);
+      setCars([]);
+    } finally {
       setLoading(false);
     }
   };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Star, XCircle, Eye, MessageSquare, Trash2, Edit } from 'lucide-react';
+import { Calendar, Clock, Star, XCircle, Eye, MessageSquare } from 'lucide-react';
 
 const UserDashboard = ({ user }) => {
   const navigate = useNavigate();

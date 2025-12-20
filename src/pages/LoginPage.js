@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import authService from '../services/authService';
 
 const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -32,44 +33,29 @@ const LoginPage = ({ onLogin }) => {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.post('http://localhost:8080/api/auth/login', formData);
-      // const userData = response.data;
+      const response = await authService.login(formData);
+      const userData = response;
       
-      // Simulated login for demo - The backend will return the user's role
-      setTimeout(() => {
-        // Simulate different roles based on email for demo
-        let role = 'user';
-        if (formData.email.includes('agent')) {
-          role = 'agent';
-        } else if (formData.email.includes('admin')) {
-          role = 'superadmin';
-        }
-        
-        const userData = {
-          id: 1,
-          email: formData.email,
-          role: role, // This will come from backend
-          firstName: 'John',
-          lastName: 'Doe'
-        };
-        
-        onLogin(userData);
-        
-        // Auto-redirect based on role
-        if (role === 'user') {
-          navigate('/user-dashboard');
-        } else if (role === 'agent') {
-          navigate('/agent-dashboard');
-        } else if (role === 'superadmin') {
-          navigate('/superadmin-dashboard');
-        }
-        
-        setLoading(false);
-      }, 1000);
-
+      console.log('🔐 Login response (full):', userData);
+      console.log('🔐 Response keys:', Object.keys(userData));
+      
+      // authService now handles token storage automatically
+      onLogin(userData);
+      
+      // Redirect based on user role
+      if (userData.role === 'user') {
+        navigate('/user-dashboard');
+      } else if (userData.role === 'agent') {
+        navigate('/agent-dashboard');
+      } else if (userData.role === 'superadmin') {
+        navigate('/superadmin-dashboard');
+      } else {
+        navigate('/cars');
+      }
+      
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err || 'Login failed. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -161,16 +147,6 @@ const LoginPage = ({ onLogin }) => {
                 Register here
               </Link>
             </p>
-          </div>
-
-          {/* Demo Instructions */}
-          <div className="mt-6 p-4 bg-sky-50 rounded-lg">
-            <p className="text-xs text-sky-800 font-semibold mb-2">Demo Login Tips:</p>
-            <ul className="text-xs text-sky-700 space-y-1">
-              <li>• Use email with "agent" for Agent Dashboard</li>
-              <li>• Use email with "admin" for Super Admin Dashboard</li>
-              <li>• Use any other email for User Dashboard</li>
-            </ul>
           </div>
         </div>
       </div>

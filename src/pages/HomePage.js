@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Car, Shield, Clock, Star, Search, Calendar } from 'lucide-react';
+import { Car, Shield, Clock, Star, Search, Calendar, Users, Settings2, Fuel } from 'lucide-react';
 import Partners from '../components/Partners';
+import carService from '../services/carService';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [featuredCars, setFeaturedCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFeaturedCars();
+  }, []);
+
+  const fetchFeaturedCars = async () => {
+    try {
+      const response = await carService.getFeaturedCars();
+      const carsArray = Array.isArray(response) ? response : response.data || [];
+      setFeaturedCars(carsArray.slice(0, 6)); // Show only 6 featured cars
+    } catch (error) {
+      console.error('Error fetching featured cars:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -89,6 +108,87 @@ const HomePage = () => {
               description="Pick up your car and enjoy your journey with confidence."
             />
           </div>
+        </div>
+      </section>
+
+      {/* Featured Cars Section */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-800 mb-12">
+            Featured Cars
+          </h2>
+          
+          {loading ? (
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500"></div>
+            </div>
+          ) : featuredCars.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredCars.map((car) => (
+                <div 
+                  key={car.id}
+                  className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden cursor-pointer"
+                  onClick={() => navigate(`/car-details/${car.id}`)}
+                >
+                  <div className="relative">
+                    <img 
+                      src={car.images?.[0] || 'https://via.placeholder.com/400x300?text=Car'} 
+                      alt={`${car.brand} ${car.model}`}
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="absolute top-4 right-4 bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      ${car.pricePerDay}/day
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      {car.brand} {car.model}
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4">{car.year}</p>
+                    
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                      <div className="flex items-center space-x-1">
+                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        <span className="text-sm font-semibold text-gray-800">
+                          {car.averageRating || 4.5}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500">{car.category}</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 text-center text-sm mb-4">
+                      <div>
+                        <Users className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+                        <p className="text-gray-600 font-medium">{car.seats} Seats</p>
+                      </div>
+                      <div>
+                        <Settings2 className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+                        <p className="text-gray-600 font-medium text-xs">{car.transmission}</p>
+                      </div>
+                      <div>
+                        <Fuel className="w-4 h-4 text-gray-400 mx-auto mb-1" />
+                        <p className="text-gray-600 font-medium text-xs">{car.fuelType}</p>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/car-details/${car.id}`);
+                      }}
+                      className="w-full bg-sky-500 text-white py-2 rounded-lg font-semibold hover:bg-sky-600 transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-600">No featured cars available at the moment.</p>
+            </div>
+          )}
         </div>
       </section>
 

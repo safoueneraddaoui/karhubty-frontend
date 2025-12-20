@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Menu, X, LogIn, UserPlus, LayoutDashboard, User, LogOut } from 'lucide-react';
+import { Menu, X, LogIn, UserPlus, User, LogOut } from 'lucide-react';
 
 const Navigation = ({ user, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,7 +17,7 @@ const Navigation = ({ user, onLogout }) => {
     if (user.role === 'user') return '/user-dashboard';
     if (user.role === 'agent') return '/agent-dashboard';
     if (user.role === 'superadmin') return '/superadmin-dashboard';
-    return '/';
+    return '/cars';
   };
 
   return (
@@ -31,17 +31,18 @@ const Navigation = ({ user, onLogout }) => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-6">
-            {!user && (
-              <Link to="/" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                Home
-              </Link>
-            )}
-            <Link to="/cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-              Browse Cars
-            </Link>
-
             {!user ? (
               <>
+                {/* Not logged in menu */}
+                <Link to="/" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                  Accueil
+                </Link>
+                <Link to="/services" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                  Services
+                </Link>
+                <Link to="/about" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                  À Propos de nous
+                </Link>
                 <Link to="/login" className="text-gray-700 hover:text-sky-500 font-medium transition-colors flex items-center space-x-1">
                   <LogIn className="w-4 h-4" />
                   <span>Login</span>
@@ -53,10 +54,15 @@ const Navigation = ({ user, onLogout }) => {
               </>
             ) : (
               <>
-                <Link to={getDashboardLink()} className="text-gray-700 hover:text-sky-500 font-medium transition-colors flex items-center space-x-1">
-                  <LayoutDashboard className="w-4 h-4" />
-                  <span>Dashboard</span>
+                {/* Logged in menu */}
+                <Link to={getDashboardLink()} className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                  Dashboard
                 </Link>
+                {user.role === 'user' && (
+                  <Link to="/reserved-cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                    Voitures Réservées
+                  </Link>
+                )}
                 <Link to="/profile" className="text-gray-700 hover:text-sky-500 font-medium transition-colors flex items-center space-x-1">
                   <User className="w-4 h-4" />
                   <span>Profile</span>
@@ -78,17 +84,18 @@ const Navigation = ({ user, onLogout }) => {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden pb-4 space-y-2">
-            {!user && (
-              <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
-                Home
-              </Link>
-            )}
-            <Link to="/cars" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
-              Browse Cars
-            </Link>
-            
             {!user ? (
               <>
+                {/* Not logged in mobile menu */}
+                <Link to="/" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
+                  Accueil
+                </Link>
+                <Link to="/services" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
+                  Services
+                </Link>
+                <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
+                  À Propos de nous
+                </Link>
                 <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
                   Login
                 </Link>
@@ -98,9 +105,15 @@ const Navigation = ({ user, onLogout }) => {
               </>
             ) : (
               <>
+                {/* Logged in mobile menu */}
                 <Link to={getDashboardLink()} onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
                   Dashboard
                 </Link>
+                {user.role === 'user' && (
+                  <Link to="/reserved-cars" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
+                    Voitures Réservées
+                  </Link>
+                )}
                 <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
                   Profile
                 </Link>

@@ -15,6 +15,7 @@ const CarDetailsPage = ({ user }) => {
 
   useEffect(() => {
     fetchCarDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carId]);
 
   const fetchCarDetails = async () => {
