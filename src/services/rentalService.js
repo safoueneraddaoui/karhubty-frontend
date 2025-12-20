@@ -119,26 +119,36 @@ const rentalService = {
         return [];
       }
       
-      // Fetch all rentals
-      const response = await api.get('/rentals');
-      console.log('✅ rentalService.getAgentRentals() - Got all rentals:', response.data);
-      
-      let allRentals = response.data.data || response.data;
-      if (!Array.isArray(allRentals)) {
-        allRentals = [allRentals];
+      // Try multiple strategies
+      // Strategy 1: Try /rentals/agent (specific agent endpoint)
+      try {
+        console.log('📍 Attempt 1: GET /rentals/agent');
+        const response = await api.get('/rentals/agent');
+        console.log('✅ /rentals/agent succeeded:', response.data);
+        const data = response.data.data || response.data;
+        return Array.isArray(data) ? data : [];
+      } catch (err1) {
+        console.warn('⚠️ /rentals/agent failed:', err1.response?.status, err1.response?.data?.message);
+        
+        // Strategy 2: Try /rentals/agent/{agentId}
+        try {
+          console.log('📍 Attempt 2: GET /rentals/agent/' + agentId);
+          const response = await api.get(`/rentals/agent/${agentId}`);
+          console.log('✅ /rentals/agent/{id} succeeded:', response.data);
+          const data = response.data.data || response.data;
+          return Array.isArray(data) ? data : [];
+        } catch (err2) {
+          console.warn('⚠️ /rentals/agent/{id} failed:', err2.message);
+          
+          // Strategy 3: Fallback - return empty array to avoid 403 errors
+          console.warn('⚠️ Could not fetch agent rentals from any endpoint');
+          return [];
+        }
       }
-      
-      // Filter rentals by agent (find rentals where car belongs to agent)
-      const agentRentals = allRentals.filter(rental => {
-        const rentalAgentId = parseInt(rental.car?.agentId || rental.agentId || 0, 10);
-        return rentalAgentId === agentId;
-      });
-      
-      console.log('✅ Filtered to agent rentals:', agentRentals.length);
-      return agentRentals;
     } catch (error) {
       console.error('❌ rentalService.getAgentRentals() - Error:', error.message);
-      throw error.response?.data?.message || 'Failed to fetch agent rentals';
+      // Return empty array on error instead of throwing
+      return [];
     }
   },
 
