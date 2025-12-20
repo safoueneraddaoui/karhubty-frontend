@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, LogIn, UserPlus, User, LogOut } from 'lucide-react';
+import NotificationIcon from './NotificationIcon';
 
 const Navigation = ({ user, onLogout }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -63,6 +64,7 @@ const Navigation = ({ user, onLogout }) => {
                     Voitures Réservées
                   </Link>
                 )}
+                <NotificationIcon user={user} />
                 <Link to="/profile" className="text-gray-700 hover:text-sky-500 font-medium transition-colors flex items-center space-x-1">
                   <User className="w-4 h-4" />
                   <span>Profile</span>
@@ -114,6 +116,9 @@ const Navigation = ({ user, onLogout }) => {
                     Voitures Réservées
                   </Link>
                 )}
+                <div className="py-2">
+                  <NotificationIcon user={user} />
+                </div>
                 <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
                   Profile
                 </Link>

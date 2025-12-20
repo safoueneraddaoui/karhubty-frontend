@@ -481,7 +481,36 @@ const AgentDashboard = ({ user }) => {
             {rentals.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600 text-lg">No rental requests yet</p>
+                <p className="text-gray-600 text-lg mb-2">No rental requests available</p>
+                <p className="text-gray-500 text-sm mb-6">
+                  Rental requests from customers will appear here
+                </p>
+                <div className="mt-6 p-6 bg-yellow-50 border-2 border-yellow-200 rounded-lg max-w-2xl mx-auto text-left">
+                  <h4 className="text-sm font-bold text-yellow-800 mb-3">⚠️ Backend Configuration Required</h4>
+                  <p className="text-xs text-gray-700 mb-3">
+                    The agent rental endpoints are not accessible. Please implement one of the following on your backend:
+                  </p>
+                  <div className="bg-white p-3 rounded border border-yellow-300 space-y-2 text-xs font-mono">
+                    <div className="flex items-start gap-2">
+                      <span className="text-green-600 font-bold">✓</span>
+                      <code className="text-blue-600">GET /api/rentals/agent</code>
+                      <span className="text-gray-600">- Returns logged-in agent's rentals (JWT based)</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-gray-400">OR</span>
+                      <code className="text-blue-600">GET /api/rentals/agent/:agentId</code>
+                      <span className="text-gray-600">- Returns specific agent's rentals</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-gray-400">OR</span>
+                      <code className="text-blue-600">GET /api/rentals?agentId=X</code>
+                      <span className="text-gray-600">- Filter rentals by agent ID</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-3">
+                    Check browser console (F12) for detailed error logs.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MapPin, DollarSign, Trash2, Eye } from 'lucide-react';
+import { Calendar, DollarSign, Trash2, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import rentalService from '../services/rentalService';
 
@@ -10,7 +10,8 @@ const ReservedCarsPage = ({ user }) => {
 
   useEffect(() => {
     fetchUserRentals();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const fetchUserRentals = async () => {
     try {
@@ -120,7 +121,7 @@ const ReservedCarsPage = ({ user }) => {
                     </div>
                     <div className="flex items-center text-gray-600 text-sm">
                       <DollarSign className="w-4 h-4 mr-2" />
-                      <span>Total: ${rental.totalPrice?.toFixed(2) || '0.00'}</span>
+                      <span>Total: ${typeof rental.totalPrice === 'number' ? rental.totalPrice.toFixed(2) : '0.00'}</span>
                     </div>
                   </div>
 
