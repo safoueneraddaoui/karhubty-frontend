@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Star, XCircle, Eye, MessageSquare, X } from 'lucide-react';
 import rentalService from '../services/rentalService';
+import reviewService from '../services/reviewService';
 
 const UserDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -50,20 +51,25 @@ const UserDashboard = ({ user }) => {
   };
 
   const submitReview = async () => {
+    if (!reviewData.comment.trim()) {
+      alert('Please write a comment');
+      return;
+    }
+
     try {
-      // TODO: Replace with actual API call
-      // await axios.post(`http://localhost:8080/api/reviews`, {
-      //   rentalId: selectedRental.rentalId,
-      //   carId: selectedRental.car.carId,
-      //   rating: reviewData.rating,
-      //   comment: reviewData.comment
-      // });
+      await reviewService.createReview({
+        rentalId: selectedRental.rentalId,
+        carId: selectedRental.car.carId,
+        rating: parseInt(reviewData.rating),
+        comment: reviewData.comment
+      });
       
       alert('Review submitted successfully!');
       setShowReviewModal(false);
       fetchUserRentals();
     } catch (error) {
-      alert('Failed to submit review. Please try again.');
+      console.error('Review submission error:', error);
+      alert(error || 'Failed to submit review. Please try again.');
     }
   };
 
@@ -322,7 +328,7 @@ const UserDashboard = ({ user }) => {
                                 </button>
                               )}
                               
-                              {rental.status === 'completed' && !rental.hasReview && (
+                              {(rental.status === 'completed' || rental.status === 'approved') && !rental.hasReview && (
                                 <button
                                   onClick={() => openReviewModal(rental)}
                                   className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors flex items-center gap-1"
@@ -332,7 +338,7 @@ const UserDashboard = ({ user }) => {
                                 </button>
                               )}
                               
-                              {rental.status === 'completed' && rental.hasReview && (
+                              {rental.hasReview && (
                                 <span className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm flex items-center gap-1">
                                   <Star className="w-4 h-4" />
                                   Reviewed

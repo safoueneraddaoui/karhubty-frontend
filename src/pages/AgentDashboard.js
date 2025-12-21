@@ -1,19 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp, X, Bell } from 'lucide-react';
+import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp, X, Bell, Star } from 'lucide-react';
 import carService from '../services/carService';
 import rentalService from '../services/rentalService';
+import reviewService from '../services/reviewService';
 import CarImageGallery from '../components/CarImageGallery';
 import CarImageUpload from '../components/CarImageUpload';
 
 const AgentDashboard = ({ user }) => {
   const [cars, setCars] = useState([]);
   const [rentals, setRentals] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
   const [showCarModal, setShowCarModal] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [formImages, setFormImages] = useState([]); // Images being uploaded in the form
+  const [showReplyModal, setShowReplyModal] = useState(false);
+  const [selectedReview, setSelectedReview] = useState(null);
+  const [replyText, setReplyText] = useState('');
   const [carFormData, setCarFormData] = useState({
     brand: '',
     model: '',
@@ -43,6 +48,15 @@ const AgentDashboard = ({ user }) => {
       const rentalsResponse = await rentalService.getAgentRentals();
       setRentals(Array.isArray(rentalsResponse) ? rentalsResponse : []);
       
+      // Fetch reviews for agent's cars
+      try {
+        const reviewsResponse = await reviewService.getAgentReviews();
+        setReviews(Array.isArray(reviewsResponse) ? reviewsResponse : []);
+      } catch (err) {
+        console.log('No reviews yet');
+        setReviews([]);
+      }
+      
       // Fetch pending count
       await fetchPendingCount();
       
@@ -51,6 +65,7 @@ const AgentDashboard = ({ user }) => {
       console.error('Error fetching agent data:', error);
       setCars([]);
       setRentals([]);
+      setReviews([]);
       setLoading(false);
     }
   }, []);
@@ -397,7 +412,7 @@ const AgentDashboard = ({ user }) => {
         {/* Tabs */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-2 border-b border-gray-200">
-            {['overview', 'cars', 'rentals'].map((tab) => (
+            {['overview', 'cars', 'rentals', 'reviews'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -667,6 +682,65 @@ const AgentDashboard = ({ user }) => {
             )}
           </div>
         )}
+
+        {/* Reviews Tab */}
+        {activeTab === 'reviews' && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-6">Customer Reviews on Your Cars</h3>
+            {reviews.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Star className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p>No reviews yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map(review => (
+                  <div key={review.reviewId} className="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < review.rating
+                                  ? 'text-yellow-500 fill-yellow-500'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-600 font-medium">Renter's Review</p>
+                      </div>
+                      <p className="text-xs text-gray-400">{new Date(review.reviewDate).toLocaleDateString()}</p>
+                    </div>
+                    
+                    <p className="text-gray-700 text-sm mb-3">{review.comment}</p>
+                    
+                    {review.agentReply ? (
+                      <div className="bg-blue-50 border-l-4 border-sky-500 p-3 rounded mt-3">
+                        <p className="text-xs font-semibold text-sky-700 mb-1">Your Reply:</p>
+                        <p className="text-sm text-gray-700">{review.agentReply}</p>
+                        <p className="text-xs text-gray-400 mt-1">{new Date(review.replyDate).toLocaleDateString()}</p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedReview(review);
+                          setReplyText('');
+                          setShowReplyModal(true);
+                        }}
+                        className="text-sm text-sky-600 hover:text-sky-700 font-medium mt-2"
+                      >
+                        Reply to Review
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Car Modal */}
@@ -847,6 +921,76 @@ const AgentDashboard = ({ user }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Review Reply Modal */}
+      {showReplyModal && selectedReview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full relative">
+            <button
+              onClick={() => setShowReplyModal(false)}
+              className="absolute -top-3 -right-3 bg-red-500 text-white hover:bg-red-600 rounded-full p-2 transition-all duration-200 hover:scale-110 shadow-lg"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Reply to Review</h3>
+            
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <div className="flex items-center gap-1 mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-4 h-4 ${
+                      i < selectedReview.rating
+                        ? 'text-yellow-500 fill-yellow-500'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-gray-700">{selectedReview.comment}</p>
+            </div>
+            
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              placeholder="Write your reply..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 mb-4"
+              rows="4"
+            ></textarea>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowReplyModal(false)}
+                className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!replyText.trim()) {
+                    alert('Please write a reply');
+                    return;
+                  }
+                  try {
+                    await reviewService.replyToReview(selectedReview.reviewId, replyText);
+                    alert('Reply submitted successfully!');
+                    setShowReplyModal(false);
+                    fetchAgentData();
+                  } catch (error) {
+                    console.error('Reply error:', error);
+                    alert(error || 'Failed to submit reply');
+                  }
+                }}
+                className="flex-1 bg-sky-500 text-white py-2 rounded-lg hover:bg-sky-600"
+              >
+                Submit Reply
+              </button>
+            </div>
           </div>
         </div>
       )}

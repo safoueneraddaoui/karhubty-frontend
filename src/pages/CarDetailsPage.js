@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Star, Users, Fuel, Settings2, Calendar, Shield, ArrowLeft, Check, X } from 'lucide-react';
 import carService from '../services/carService';
 import rentalService from '../services/rentalService';
+import reviewService from '../services/reviewService';
 
 const CarDetailsPage = ({ user }) => {
   const { carId } = useParams();
   const navigate = useNavigate();
   const [car, setCar] = useState(null);
+  const [reviews, setReviews] = useState([]);
   const [agentName, setAgentName] = useState('');
   const [loading, setLoading] = useState(true);
   const [bookingData, setBookingData] = useState({
@@ -28,6 +30,14 @@ const CarDetailsPage = ({ user }) => {
       const carData = response.data || response;
       setCar(carData);
       
+      // Fetch reviews for this car
+      try {
+        const reviewsData = await reviewService.getReviewsByCar(carId);
+        setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+      } catch (err) {
+        console.log('No reviews yet');
+        setReviews([]);
+      }
       // Fetch agent name if agentId exists
       if (carData.agentId) {
         try {
@@ -224,20 +234,40 @@ const CarDetailsPage = ({ user }) => {
 
             {/* Reviews */}
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Reviews</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Customer Reviews (Latest 5)</h3>
               <div className="space-y-4">
-                {car.reviews && car.reviews.length > 0 ? (
-                  car.reviews.map(review => (
-                    <div key={review.reviewId} className="border-b pb-4 last:border-0">
+                {reviews && reviews.length > 0 ? (
+                  reviews.map(review => (
+                    <div key={review.reviewId} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="font-semibold text-gray-800">{review.userName}</p>
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
-                          <span className="font-semibold">{review.rating}</span>
+                        <p className="font-semibold text-gray-800">Renter</p>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < review.rating
+                                  ? 'text-yellow-500 fill-yellow-500'
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
                         </div>
                       </div>
-                      <p className="text-gray-600 text-sm mb-1">{review.comment}</p>
-                      <p className="text-gray-400 text-xs">{new Date(review.reviewDate).toLocaleDateString()}</p>
+                      <p className="text-gray-600 text-sm mb-2">{review.comment}</p>
+                      <p className="text-gray-400 text-xs mb-3">
+                        {new Date(review.reviewDate).toLocaleDateString()}
+                      </p>
+                      
+                      {review.agentReply && (
+                        <div className="bg-blue-50 border-l-4 border-sky-500 p-3 rounded">
+                          <p className="text-xs font-semibold text-sky-700 mb-1">Agent Reply:</p>
+                          <p className="text-sm text-gray-700">{review.agentReply}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(review.replyDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

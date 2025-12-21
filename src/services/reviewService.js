@@ -45,7 +45,7 @@ const reviewService = {
   },
 
   /**
-   * Get reviews by car
+   * Get reviews by car (latest 5)
    * @param {number} carId - Car ID
    * @returns {Promise} Array of reviews
    */
@@ -83,6 +83,48 @@ const reviewService = {
       return response.data;
     } catch (error) {
       throw error.response?.data?.message || 'Failed to fetch review';
+    }
+  },
+
+  /**
+   * Get car average rating
+   * @param {number} carId - Car ID
+   * @returns {Promise} { averageRating, totalReviews }
+   */
+  getCarRating: async (carId) => {
+    try {
+      const response = await api.get(`/reviews/car/${carId}/rating`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Failed to fetch car rating';
+    }
+  },
+
+  /**
+   * Get reviews for agent's cars
+   * @returns {Promise} Array of reviews for agent's cars
+   */
+  getAgentReviews: async () => {
+    try {
+      const response = await api.get('/reviews/agent/my-reviews');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Failed to fetch agent reviews';
+    }
+  },
+
+  /**
+   * Agent reply to review
+   * @param {number} reviewId - Review ID
+   * @param {string} reply - Agent's reply message
+   * @returns {Promise} Updated review data
+   */
+  replyToReview: async (reviewId, reply) => {
+    try {
+      const response = await api.put(`/reviews/${reviewId}/reply`, { reply });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data?.message || 'Failed to reply to review';
     }
   },
 };
