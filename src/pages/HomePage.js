@@ -130,11 +130,12 @@ const HomePage = () => {
                   className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden cursor-pointer"
                   onClick={() => navigate(`/car-details/${car.id}`)}
                 >
-                  <div className="relative">
+                  <div className="relative h-60 bg-gradient-to-b from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
                     <img 
-                      src={car.images?.[0] || 'https://via.placeholder.com/400x300?text=Car'} 
+                      src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : 'https://via.placeholder.com/400x300?text=Car'} 
                       alt={`${car.brand} ${car.model}`}
-                      className="w-full h-48 object-cover"
+                      className="h-full w-full object-contain object-center"
+                      loading="lazy"
                     />
                     <div className="absolute top-4 right-4 bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                       ${car.pricePerDay}/day

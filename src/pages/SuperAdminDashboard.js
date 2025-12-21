@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Building2, Car, CheckCircle, XCircle, Eye, Trash2, Shield, DollarSign } from 'lucide-react';
+import { Users, Building2, Car, CheckCircle, XCircle, Eye, Trash2, Shield, DollarSign, X } from 'lucide-react';
 
 const SuperAdminDashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -536,7 +536,14 @@ const SuperAdminDashboard = ({ user }) => {
       {/* User Details Modal */}
       {showUserModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full relative">
+            <button
+              onClick={() => setShowUserModal(false)}
+              className="absolute -top-3 -right-3 bg-red-500 text-white hover:bg-red-600 rounded-full p-2 transition-all duration-200 hover:scale-110 shadow-lg"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h3 className="text-xl font-bold text-gray-800 mb-4">User Details</h3>
             <div className="space-y-3">
               <div>

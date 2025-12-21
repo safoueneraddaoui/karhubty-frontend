@@ -165,14 +165,40 @@ const carService = {
   },
 
   /**
-   * Add a new car (Agent Admin only)
-   * @param {Object} carData - Car details { brand, model, year, dailyRate, category, transmission, fuelType, seats, features, imageUrl, description }
+   * Add a new car with images (Agent only)
+   * @param {Object} carData - Car details
+   * @param {Array<File>} imageFiles - Image files to upload
    * @returns {Promise} Created car data
    */
-  addCar: async (carData) => {
+  addCar: async (carData, imageFiles = []) => {
     try {
       console.log('🚗 carService.addCar() - Adding new car:', carData);
-      const response = await api.post('/cars', carData);
+      console.log('📸 carService.addCar() - Image files:', imageFiles.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      
+      // Create FormData for multipart upload
+      const formData = new FormData();
+      
+      // Add car data fields
+      Object.keys(carData).forEach(key => {
+        if (Array.isArray(carData[key])) {
+          // Handle array fields (like features)
+          carData[key].forEach((item, index) => {
+            formData.append(`${key}[${index}]`, item);
+          });
+        } else {
+          console.log(`  - Adding field: ${key} = ${carData[key]}`);
+          formData.append(key, carData[key]);
+        }
+      });
+      
+      // Add image files
+      imageFiles.forEach((file) => {
+        console.log(`  - Adding image: ${file.name} (${file.size} bytes)`);
+        formData.append('images', file);
+      });
+      
+      // Don't set Content-Type header - let browser set it with boundary
+      const response = await api.post('/cars', formData);
       console.log('✅ carService.addCar() - Success:', response.data);
       return response.data;
     } catch (error) {
@@ -183,15 +209,41 @@ const carService = {
   },
 
   /**
-   * Update/modify a car (Agent Admin only)
+   * Update/modify a car with optional new images (Agent only)
    * @param {number} carId - Car ID
    * @param {Object} carData - Updated car details
+   * @param {Array<File>} imageFiles - New image files to upload (optional)
    * @returns {Promise} Updated car data
    */
-  modifyCar: async (carId, carData) => {
+  modifyCar: async (carId, carData, imageFiles = []) => {
     try {
       console.log('🚗 carService.modifyCar() - Updating car:', carId, carData);
-      const response = await api.put(`/cars/${carId}`, carData);
+      console.log('📸 carService.modifyCar() - Image files:', imageFiles.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      
+      // Create FormData for multipart upload
+      const formData = new FormData();
+      
+      // Add car data fields
+      Object.keys(carData).forEach(key => {
+        if (Array.isArray(carData[key])) {
+          // Handle array fields (like features)
+          carData[key].forEach((item, index) => {
+            formData.append(`${key}[${index}]`, item);
+          });
+        } else {
+          console.log(`  - Adding field: ${key} = ${carData[key]}`);
+          formData.append(key, carData[key]);
+        }
+      });
+      
+      // Add new image files if provided
+      imageFiles.forEach((file) => {
+        console.log(`  - Adding image: ${file.name} (${file.size} bytes)`);
+        formData.append('images', file);
+      });
+      
+      // Don't set Content-Type header - let browser set it with boundary
+      const response = await api.put(`/cars/${carId}`, formData);
       console.log('✅ carService.modifyCar() - Success:', response.data);
       return response.data;
     } catch (error) {

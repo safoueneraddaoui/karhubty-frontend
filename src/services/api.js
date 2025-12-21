@@ -33,6 +33,12 @@ api.interceptors.request.use(
       }
     }
     
+    // If data is FormData, don't set Content-Type header (let browser set it with boundary)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+      console.log('📤 [API Request] FormData detected - removed Content-Type header to allow browser to set boundary');
+    }
+    
     // Skip token check for auth endpoints (login, register, forgot-password)
     const authEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/agent-requests'];
     const isAuthEndpoint = authEndpoints.some(endpoint => config.url?.includes(endpoint));

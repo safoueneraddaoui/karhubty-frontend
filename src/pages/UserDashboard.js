@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, Star, XCircle, Eye, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, Star, XCircle, Eye, MessageSquare, X } from 'lucide-react';
 import rentalService from '../services/rentalService';
 
 const UserDashboard = ({ user }) => {
@@ -354,7 +354,14 @@ const UserDashboard = ({ user }) => {
       {/* Review Modal */}
       {showReviewModal && selectedRental && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full relative">
+            <button
+              onClick={() => setShowReviewModal(false)}
+              className="absolute -top-3 -right-3 bg-red-500 text-white hover:bg-red-600 rounded-full p-2 transition-all duration-200 hover:scale-110 shadow-lg"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h3 className="text-xl font-bold text-gray-800 mb-4">Write a Review</h3>
             {selectedRental.car ? (
               <p className="text-gray-600 mb-4">

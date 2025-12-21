@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp, X } from 'lucide-react';
 import carService from '../services/carService';
 import rentalService from '../services/rentalService';
+import CarImageGallery from '../components/CarImageGallery';
+import CarImageUpload from '../components/CarImageUpload';
 
 const AgentDashboard = ({ user }) => {
   const [cars, setCars] = useState([]);
@@ -11,6 +13,7 @@ const AgentDashboard = ({ user }) => {
   const [showCarModal, setShowCarModal] = useState(false);
   const [editingCar, setEditingCar] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [formImages, setFormImages] = useState([]); // Images being uploaded in the form
   const [carFormData, setCarFormData] = useState({
     brand: '',
     model: '',
@@ -23,27 +26,18 @@ const AgentDashboard = ({ user }) => {
     pricePerDay: '',
     guaranteePrice: '',
     category: 'Sedan',
-    features: [],
-    images: []
   });
-  const [carImages, setCarImages] = useState([]);
 
-  useEffect(() => {
-    fetchAgentData();
-    // Poll for pending rentals every 30 seconds
-    const interval = setInterval(() => {
-      fetchPendingCount();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchAgentData = async () => {
+  const fetchAgentData = useCallback(async () => {
     try {
       setLoading(true);
       
       // Fetch agent's own cars only
       const carsResponse = await carService.getAgentCars();
-      setCars(Array.isArray(carsResponse) ? carsResponse : []);
+      const carsArray = Array.isArray(carsResponse) ? carsResponse : [];
+      setCars(carsArray);
+      
+      // Images are now stored directly in car.images
       
       // Fetch rentals for agent
       const rentalsResponse = await rentalService.getAgentRentals();
@@ -59,7 +53,16 @@ const AgentDashboard = ({ user }) => {
       setRentals([]);
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAgentData();
+    // Poll for pending rentals every 30 seconds
+    const interval = setInterval(() => {
+      fetchPendingCount();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAgentData]);
 
   const fetchPendingCount = async () => {
     try {
@@ -82,22 +85,31 @@ const AgentDashboard = ({ user }) => {
     if (window.confirm('Approve this rental request?')) {
       try {
         await rentalService.approveRental(rentalId);
-        alert('Rental approved successfully!');
         
-        // Find the rental to get car info
+        // Find the rental to get car info and update car availability
         const rental = rentals.find(r => r.rentalId === rentalId);
         if (rental && rental.car) {
-          // Mark car as unavailable
           try {
             await carService.updateCarAvailability(rental.car.carId || rental.car.id, false);
             console.log('✅ Car marked as unavailable');
           } catch (err) {
             console.warn('⚠️ Could not update car availability:', err);
-            // Don't fail the whole operation if this fails
           }
         }
         
-        fetchAgentData();
+        // Update the rental status locally instead of refetching all data
+        setRentals(prevRentals => 
+          prevRentals.map(r => 
+            r.rentalId === rentalId 
+              ? { ...r, status: 'approved', approvalDate: new Date().toISOString().split('T')[0] }
+              : r
+          )
+        );
+        
+        // Update pending count
+        setPendingCount(prev => Math.max(0, prev - 1));
+        
+        alert('Rental approved successfully!');
       } catch (error) {
         console.error('Error approving rental:', error);
         alert(error || 'Failed to approve rental');
@@ -109,8 +121,20 @@ const AgentDashboard = ({ user }) => {
     if (window.confirm('Reject this rental request?')) {
       try {
         await rentalService.rejectRental(rentalId);
+        
+        // Update the rental status locally instead of refetching all data
+        setRentals(prevRentals => 
+          prevRentals.map(r => 
+            r.rentalId === rentalId 
+              ? { ...r, status: 'rejected' }
+              : r
+          )
+        );
+        
+        // Update pending count
+        setPendingCount(prev => Math.max(0, prev - 1));
+        
         alert('Rental rejected');
-        fetchAgentData();
       } catch (error) {
         console.error('Error rejecting rental:', error);
         alert(error || 'Failed to reject rental');
@@ -121,8 +145,22 @@ const AgentDashboard = ({ user }) => {
   const openCarModal = (car = null) => {
     if (car) {
       setEditingCar(car);
-      setCarFormData(car);
-      setCarImages(car.images || []);
+      setCarFormData({
+        brand: car.brand,
+        model: car.model,
+        year: car.year,
+        color: car.color,
+        licensePlate: car.licensePlate,
+        fuelType: car.fuelType,
+        transmission: car.transmission,
+        seats: car.seats,
+        pricePerDay: car.pricePerDay,
+        guaranteePrice: car.guaranteePrice,
+        category: car.category,
+        features: car.features || [],
+      });
+      // Load existing images when editing
+      setFormImages(car.images || []);
     } else {
       setEditingCar(null);
       setCarFormData({
@@ -138,9 +176,8 @@ const AgentDashboard = ({ user }) => {
         guaranteePrice: '',
         category: 'Sedan',
         features: [],
-        images: []
       });
-      setCarImages([]);
+      setFormImages([]); // Reset form images for new car
     }
     setShowCarModal(true);
   };
@@ -149,6 +186,11 @@ const AgentDashboard = ({ user }) => {
     e.preventDefault();
     
     try {
+      console.log('🚗 [handleCarSubmit] Starting car submission...');
+      console.log('  - Editing car:', editingCar);
+      console.log('  - Form data:', carFormData);
+      console.log('  - Form images:', formImages);
+
       const carData = {
         brand: carFormData.brand,
         model: carFormData.model,
@@ -161,8 +203,9 @@ const AgentDashboard = ({ user }) => {
         pricePerDay: parseFloat(carFormData.pricePerDay) || 0,
         guaranteePrice: parseFloat(carFormData.guaranteePrice) || 0,
         category: carFormData.category,
-        features: Array.isArray(carFormData.features) ? carFormData.features : []
       };
+      
+      console.log('  - Prepared car data:', carData);
       
       // Validate required fields
       if (!carData.brand || !carData.model || !carData.licensePlate) {
@@ -180,36 +223,54 @@ const AgentDashboard = ({ user }) => {
         return;
       }
       
+      // Extract actual File objects from formImages (in case they're mixed with URLs)
+      const filesToUpload = formImages.filter(img => img instanceof File);
+      console.log('  - Files to upload:', filesToUpload.map(f => ({ name: f.name, size: f.size })));
+      
       if (editingCar) {
-        // Update car
-        await carService.modifyCar(editingCar.id || editingCar.carId, carData);
+        // Update car with optional new images
+        console.log('  - Updating car ID:', editingCar.id || editingCar.carId);
+        // The backend will append new images to existing ones
+        await carService.modifyCar(editingCar.id || editingCar.carId, carData, filesToUpload);
         alert('Car updated successfully!');
       } else {
-        // Add new car
-        await carService.addCar(carData);
+        // Add new car with images
+        console.log('  - Creating new car');
+        await carService.addCar(carData, filesToUpload);
         alert('Car added successfully!');
       }
       
       setShowCarModal(false);
-      setCarImages([]);
+      setFormImages([]);
       fetchAgentData();
     } catch (error) {
       console.error('Error saving car:', error);
-      alert(error || 'Failed to save car. Please try again.');
-    }
-  };
+      
+      // Extract validation errors from response
+      const errorData = error.response?.data;
+      let errorMessage = 'Failed to save car. Please try again.';
+      let errorDisplay = [];
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + carImages.length > 5) {
-      alert('Maximum 5 images allowed');
-      return;
-    }
-    setCarImages([...carImages, ...files]);
-  };
+      if (errorData?.errors && typeof errorData.errors === 'object') {
+        // Format: { field: [messages] }
+        Object.entries(errorData.errors).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            messages.forEach(msg => {
+              errorDisplay.push(`${field}: ${msg}`);
+            });
+          }
+        });
+        if (errorDisplay.length > 0) {
+          errorMessage = errorDisplay.join('\n');
+        }
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
-  const removeImage = (index) => {
-    setCarImages(carImages.filter((_, i) => i !== index));
+      alert(errorMessage);
+    }
   };
 
   const deleteCar = async (carId) => {
@@ -264,7 +325,7 @@ const AgentDashboard = ({ user }) => {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">Agency Dashboard</h1>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">{user?.agencyName || 'Agency Dashboard'}</h1>
               <p className="text-gray-600">Manage your fleet and rental requests</p>
             </div>
             {pendingCount > 0 && (
@@ -431,8 +492,31 @@ const AgentDashboard = ({ user }) => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {cars.map(car => (
-                  <div key={car.carId} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                    <img src={car.image} alt={`${car.brand} ${car.model}`} className="w-full h-48 object-cover" />
+                  <div key={car.carId} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-xl transition-all duration-300">
+                    {/* Car Image Gallery */}
+                    <div className="h-60 bg-gradient-to-b from-gray-100 to-gray-200 relative overflow-hidden flex items-center justify-center">
+                      {car.images && car.images.length > 0 ? (
+                        <>
+                          <img 
+                            src={`http://localhost:8080/uploads/${car.images[0]}`}
+                            alt={`${car.brand} ${car.model}`} 
+                            className="h-full w-full object-contain object-center"
+                            loading="lazy"
+                          />
+                          {car.images.length > 1 && (
+                            <div className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm">
+                              {car.images.length} 📷
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="text-center">
+                          <Car className="w-16 h-16 text-gray-400 mx-auto mb-3" />
+                          <p className="text-sm text-gray-600">No images yet</p>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="p-4">
                       <div className="flex justify-between items-start mb-2">
                         <div>
@@ -446,8 +530,11 @@ const AgentDashboard = ({ user }) => {
                       <p className="text-sky-600 font-bold mb-3">€{car.pricePerDay}/day</p>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => openCarModal(car)}
-                          className="flex-1 text-sky-600 hover:bg-sky-50 px-3 py-2 rounded-lg border border-sky-600 flex items-center justify-center gap-1"
+                          onClick={() => {
+                            setEditingCar(car);
+                            setShowCarModal(true);
+                          }}
+                          className="flex-1 text-sky-600 hover:bg-sky-50 px-3 py-2 rounded-lg border border-sky-600 flex items-center justify-center gap-1 text-sm"
                         >
                           <Edit className="w-4 h-4" />
                           Edit
@@ -463,6 +550,19 @@ const AgentDashboard = ({ user }) => {
                           className="text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg border border-red-600"
                         >
                           <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Images Management Link */}
+                      <div className="mt-3 pt-3 border-t">
+                        <button
+                          onClick={() => {
+                            setEditingCar(car);
+                            setShowCarModal(true);
+                          }}
+                          className="w-full text-center text-xs text-blue-600 hover:text-blue-800 py-1"
+                        >
+                          📷 Manage Images ({car.images?.length || 0})
                         </button>
                       </div>
                     </div>
@@ -569,7 +669,14 @@ const AgentDashboard = ({ user }) => {
       {/* Car Modal */}
       {showCarModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full my-8">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full my-8 relative">
+            <button
+              onClick={() => setShowCarModal(false)}
+              className="absolute -top-3 -right-3 bg-red-500 text-white hover:bg-red-600 rounded-full p-2 transition-all duration-200 hover:scale-110 shadow-lg"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h3 className="text-2xl font-bold text-gray-800 mb-6">
               {editingCar ? 'Edit Car' : 'Add New Car'}
             </h3>
@@ -709,49 +816,16 @@ const AgentDashboard = ({ user }) => {
               </div>
 
               {/* Image Upload Section */}
-              <div className="col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Car Images <span className="text-red-500">*</span> (Min 1, Max 5)
+                  Car Images (JPG, PNG, WebP - Max 5MB each)
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-sky-500 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="car-images"
-                  />
-                  <label htmlFor="car-images" className="cursor-pointer">
-                    <div className="flex flex-col items-center">
-                      <Plus className="w-12 h-12 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600 mb-1">Click to upload images</p>
-                      <p className="text-xs text-gray-500">PNG, JPG up to 10MB each</p>
-                    </div>
-                  </label>
-                </div>
-                
-                {/* Image Preview */}
-                {carImages.length > 0 && (
-                  <div className="mt-4 grid grid-cols-5 gap-2">
-                    {carImages.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={typeof image === 'string' ? image : URL.createObjectURL(image)}
-                          alt={`Car ${index + 1}`}
-                          className="w-full h-20 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <CarImageUpload
+                  images={formImages}
+                  onImagesChange={setFormImages}
+                  maxImages={5}
+                  disabled={false}
+                />
               </div>
               
               <div className="flex gap-3 mt-6 col-span-2">
@@ -773,6 +847,8 @@ const AgentDashboard = ({ user }) => {
           </div>
         </div>
       )}
+
+      {/* Image Management Modal - REMOVED - Image upload now integrated in Car Modal */}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, Users, Fuel, Settings2, Calendar, Shield, ArrowLeft, Check } from 'lucide-react';
+import { Star, Users, Fuel, Settings2, Calendar, Shield, ArrowLeft, Check, X } from 'lucide-react';
 import carService from '../services/carService';
 import rentalService from '../services/rentalService';
 
@@ -126,20 +126,23 @@ const CarDetailsPage = ({ user }) => {
           <div className="lg:col-span-2">
             {/* Image Gallery */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
-              <img 
-                src={car.images?.[0] || '/placeholder-car.jpg'} 
-                alt={`${car.brand} ${car.model}`}
-                className="w-full h-96 object-cover"
-              />
+              <div className="relative h-96 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img 
+                  src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : '/placeholder-car.jpg'} 
+                  alt={`${car.brand} ${car.model}`}
+                  className="h-full w-full object-contain object-center"
+                />
+              </div>
               {car.images && car.images.length > 1 && (
                 <div className="grid grid-cols-3 gap-2 p-4">
                   {car.images.slice(1).map((image, index) => (
-                    <img 
-                      key={index}
-                      src={image} 
-                      alt={`${car.brand} ${car.model} ${index + 2}`}
-                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-75"
-                    />
+                    <div key={index} className="relative h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                      <img 
+                        src={`http://localhost:8080/uploads/${image}`} 
+                        alt={`${car.brand} ${car.model} ${index + 2}`}
+                        className="h-full w-full object-contain object-center cursor-pointer hover:opacity-75"
+                      />
+                    </div>
                   ))}
                 </div>
               )}
@@ -295,7 +298,14 @@ const CarDetailsPage = ({ user }) => {
       {/* Booking Confirmation Modal */}
       {showBookingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full relative">
+            <button
+              onClick={() => setShowBookingModal(false)}
+              className="absolute -top-3 -right-3 bg-red-500 text-white hover:bg-red-600 rounded-full p-2 transition-all duration-200 hover:scale-110 shadow-lg"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h3 className="text-xl font-bold text-gray-800 mb-4">Confirm Booking</h3>
             <div className="space-y-2 mb-6">
               <p className="text-gray-600"><strong>Car:</strong> {car.brand} {car.model}</p>

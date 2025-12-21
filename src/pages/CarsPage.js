@@ -244,11 +244,12 @@ const CarsPage = ({ user }) => {
 const CarCard = ({ car, navigate }) => {
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden cursor-pointer" onClick={() => navigate(`/cars/${car.carId}`)}>
-      <div className="relative h-48 bg-gray-200">
+      <div className="relative h-60 bg-gradient-to-b from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
         <img 
-          src={car.images[0]} 
+          src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : 'https://via.placeholder.com/400x300?text=No+Image'} 
           alt={`${car.brand} ${car.model}`}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-contain object-center"
+          loading="lazy"
         />
         <div className="absolute top-3 right-3 bg-white px-3 py-1 rounded-full text-sm font-semibold text-sky-600">
           €{car.pricePerDay}/day
