@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import rentalService from '../services/rentalService';
 
@@ -6,6 +6,7 @@ const NotificationIcon = ({ user }) => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
   const [rentals, setRentals] = useState([]);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -15,6 +16,23 @@ const NotificationIcon = ({ user }) => {
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
 
   const fetchNotifications = async () => {
     try {
@@ -60,10 +78,19 @@ const NotificationIcon = ({ user }) => {
   const isAgent = user.role === 'agentadmin' || user.role === 'agent';
   const isUser = user.role === 'user';
 
+  const handleToggleDropdown = () => {
+    const newState = !showDropdown;
+    setShowDropdown(newState);
+    // Clear notification count when opening dropdown
+    if (newState) {
+      setNotificationCount(0);
+    }
+  };
+
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setShowDropdown(!showDropdown)}
+        onClick={handleToggleDropdown}
         className="relative p-2 text-gray-700 hover:text-sky-500 transition-colors focus:outline-none"
         title="Notifications"
       >

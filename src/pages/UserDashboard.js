@@ -262,7 +262,7 @@ const UserDashboard = ({ user }) => {
                     {/* Car Image */}
                     {rental.car && (
                       <img 
-                        src={rental.car.image || '/placeholder-car.jpg'} 
+                        src={rental.car.images && rental.car.images[0] ? `http://localhost:8080/uploads/${rental.car.images[0]}` : '/placeholder-car.jpg'} 
                         alt={`${rental.car.brand} ${rental.car.model}`}
                         className="w-full md:w-48 h-32 object-cover rounded-lg"
                       />
@@ -297,8 +297,10 @@ const UserDashboard = ({ user }) => {
                           
                           <div className="flex justify-between items-center">
                             <div>
-                              <p className="text-lg font-bold text-sky-600">€{rental.totalPrice}</p>
-                              <p className="text-xs text-gray-500">Guarantee: €{rental.guaranteeAmount}</p>
+                              <p className="text-sm text-gray-600">
+                                Rental: €{(rental.totalPrice - rental.guaranteeAmount).toFixed(2)} + Guarantee: €{rental.guaranteeAmount}
+                              </p>
+                              <p className="text-lg font-bold text-sky-600">Total: €{rental.totalPrice}</p>
                             </div>
                             
                             <div className="flex gap-2">

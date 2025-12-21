@@ -132,10 +132,13 @@ const HomePage = () => {
                 >
                   <div className="relative h-60 bg-gradient-to-b from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
                     <img 
-                      src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : 'https://via.placeholder.com/400x300?text=Car'} 
+                      src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : '/karhubty-logo-blue.png'} 
                       alt={`${car.brand} ${car.model}`}
                       className="h-full w-full object-contain object-center"
                       loading="lazy"
+                      onError={(e) => {
+                        e.target.src = '/karhubty-logo-blue.png';
+                      }}
                     />
                     <div className="absolute top-4 right-4 bg-sky-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                       ${car.pricePerDay}/day

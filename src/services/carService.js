@@ -27,39 +27,24 @@ const carService = {
    */
   getAgentCars: async () => {
     try {
-      console.log('🚗 carService.getAgentCars() - Fetching agent cars');
+      console.log('🚗 carService.getAgentCars() - Fetching ONLY current agent\'s cars');
       
-      // Get agent ID from localStorage
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const agentId = parseInt(user?.id || user?.userId || 0, 10);
+      // Use dedicated agent endpoint that requires authentication
+      // This endpoint ONLY returns the logged-in agent's cars
+      const response = await api.get('/cars/agent/my-cars');
+      console.log('✅ carService.getAgentCars() - Got agent cars:', response.data);
       
-      console.log('📍 Agent ID:', agentId);
-      
-      if (!agentId) {
-        console.warn('⚠️ No agent ID found');
-        return [];
+      let agentCars = response.data.data || response.data;
+      if (!Array.isArray(agentCars)) {
+        agentCars = agentCars ? [agentCars] : [];
       }
       
-      // Fetch all cars and filter by agentId
-      const response = await api.get('/cars');
-      console.log('✅ carService.getAgentCars() - Got all cars:', response.data);
-      
-      let allCars = response.data.data || response.data;
-      if (!Array.isArray(allCars)) {
-        allCars = [allCars];
-      }
-      
-      // Filter cars by agent
-      const agentCars = allCars.filter(car => {
-        const carAgentId = parseInt(car.agentId || car.agent?.id || 0, 10);
-        return carAgentId === agentId;
-      });
-      
-      console.log('✅ Filtered to agent cars:', agentCars.length);
+      console.log(`✅ Agent has ${agentCars.length} car(s)`);
       return agentCars;
     } catch (error) {
       console.error('❌ carService.getAgentCars() - Error:', error.message);
-      throw error.response?.data?.message || 'Failed to fetch agent cars';
+      console.error('⚠️ Make sure you are logged in as an agent');
+      return [];
     }
   },
 

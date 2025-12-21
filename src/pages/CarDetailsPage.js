@@ -8,6 +8,7 @@ const CarDetailsPage = ({ user }) => {
   const { carId } = useParams();
   const navigate = useNavigate();
   const [car, setCar] = useState(null);
+  const [agentName, setAgentName] = useState('');
   const [loading, setLoading] = useState(true);
   const [bookingData, setBookingData] = useState({
     startDate: '',
@@ -26,6 +27,23 @@ const CarDetailsPage = ({ user }) => {
       const response = await carService.getCarById(carId);
       const carData = response.data || response;
       setCar(carData);
+      
+      // Fetch agent name if agentId exists
+      if (carData.agentId) {
+        try {
+          // Try to get agent info from the car's agent relationship if available
+          if (carData.agent?.firstName && carData.agent?.lastName) {
+            setAgentName(`${carData.agent.firstName} ${carData.agent.lastName}`);
+          } else if (carData.agencyName) {
+            setAgentName(carData.agencyName);
+          } else {
+            setAgentName(`Agent #${carData.agentId}`);
+          }
+        } catch (err) {
+          setAgentName(`Agent #${carData.agentId}`);
+        }
+      }
+      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching car details:', error);
@@ -41,7 +59,10 @@ const CarDetailsPage = ({ user }) => {
     const end = new Date(bookingData.endDate);
     const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     
-    return days > 0 ? days * car.pricePerDay : 0;
+    const pricePerDay = parseFloat(car.pricePerDay);
+    const guaranteePrice = parseFloat(car.guaranteePrice);
+    
+    return days > 0 ? (days * pricePerDay) + guaranteePrice : 0;
   };
 
   const handleBooking = () => {
@@ -128,9 +149,12 @@ const CarDetailsPage = ({ user }) => {
             <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
               <div className="relative h-96 bg-gray-100 flex items-center justify-center overflow-hidden">
                 <img 
-                  src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : '/placeholder-car.jpg'} 
+                  src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : '/karhubty-logo-blue.png'} 
                   alt={`${car.brand} ${car.model}`}
                   className="h-full w-full object-contain object-center"
+                  onError={(e) => {
+                    e.target.src = '/karhubty-logo-blue.png';
+                  }}
                 />
               </div>
               {car.images && car.images.length > 1 && (
@@ -141,6 +165,9 @@ const CarDetailsPage = ({ user }) => {
                         src={`http://localhost:8080/uploads/${image}`} 
                         alt={`${car.brand} ${car.model} ${index + 2}`}
                         className="h-full w-full object-contain object-center cursor-pointer hover:opacity-75"
+                        onError={(e) => {
+                          e.target.src = '/karhubty-logo-blue.png';
+                        }}
                       />
                     </div>
                   ))}
@@ -268,11 +295,15 @@ const CarDetailsPage = ({ user }) => {
                   </div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">Rental Price</span>
-                    <span className="font-semibold">€{calculateTotalPrice()}</span>
+                    <span className="font-semibold">€{Math.ceil((new Date(bookingData.endDate) - new Date(bookingData.startDate)) / (1000 * 60 * 60 * 24)) * car.pricePerDay}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Guarantee</span>
+                    <span className="font-semibold">€{car.guaranteePrice}</span>
                   </div>
                   <div className="flex justify-between items-center border-t pt-2">
                     <span className="font-semibold text-gray-800">Total</span>
-                    <span className="text-xl font-bold text-sky-600">€{calculateTotalPrice() + car.guaranteePrice}</span>
+                    <span className="text-xl font-bold text-sky-600">€{calculateTotalPrice()}</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">* Guarantee will be refunded after return</p>
                 </div>
@@ -288,7 +319,7 @@ const CarDetailsPage = ({ user }) => {
               </button>
 
               <p className="text-xs text-gray-500 text-center mt-4">
-                Agent: {car.agentName}
+                Agent: {agentName || 'Loading...'}
               </p>
             </div>
           </div>
@@ -311,7 +342,7 @@ const CarDetailsPage = ({ user }) => {
               <p className="text-gray-600"><strong>Car:</strong> {car.brand} {car.model}</p>
               <p className="text-gray-600"><strong>Pick-up:</strong> {bookingData.startDate}</p>
               <p className="text-gray-600"><strong>Drop-off:</strong> {bookingData.endDate}</p>
-              <p className="text-gray-600"><strong>Total:</strong> €{calculateTotalPrice() + car.guaranteePrice}</p>
+              <p className="text-gray-600"><strong>Total:</strong> €{calculateTotalPrice()}</p>
             </div>
             <div className="flex gap-3">
               <button

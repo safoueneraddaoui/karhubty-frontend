@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp, X } from 'lucide-react';
+import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, TrendingUp, X, Bell } from 'lucide-react';
 import carService from '../services/carService';
 import rentalService from '../services/rentalService';
 import CarImageGallery from '../components/CarImageGallery';
@@ -329,9 +329,11 @@ const AgentDashboard = ({ user }) => {
               <p className="text-gray-600">Manage your fleet and rental requests</p>
             </div>
             {pendingCount > 0 && (
-              <div className="bg-red-100 border-2 border-red-300 rounded-lg p-4 text-center">
-                <p className="text-red-800 font-bold text-sm">🔔 New Requests</p>
-                <p className="text-3xl font-bold text-red-600">{pendingCount}</p>
+              <div className="relative p-2 text-red-600">
+                <Bell className="w-8 h-8" />
+                <span className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {pendingCount}
+                </span>
               </div>
             )}
           </div>
@@ -502,6 +504,9 @@ const AgentDashboard = ({ user }) => {
                             alt={`${car.brand} ${car.model}`} 
                             className="h-full w-full object-contain object-center"
                             loading="lazy"
+                            onError={(e) => {
+                              e.target.src = '/karhubty-logo-blue.png';
+                            }}
                           />
                           {car.images.length > 1 && (
                             <div className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm">
@@ -530,10 +535,7 @@ const AgentDashboard = ({ user }) => {
                       <p className="text-sky-600 font-bold mb-3">€{car.pricePerDay}/day</p>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            setEditingCar(car);
-                            setShowCarModal(true);
-                          }}
+                          onClick={() => openCarModal(car)}
                           className="flex-1 text-sky-600 hover:bg-sky-50 px-3 py-2 rounded-lg border border-sky-600 flex items-center justify-center gap-1 text-sm"
                         >
                           <Edit className="w-4 h-4" />
@@ -625,6 +627,7 @@ const AgentDashboard = ({ user }) => {
                               Customer: {rental.user ? `${rental.user.firstName} ${rental.user.lastName}` : 'Unknown User'}
                             </p>
                             <p className="text-sm text-gray-600">{rental.user?.email || 'N/A'}</p>
+                            {rental.user?.city && <p className="text-sm text-gray-600">📍 {rental.user.city}</p>}
                           </div>
                           <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(rental.status)}`}>
                             {rental.status}

@@ -93,9 +93,12 @@ const ReservedCarsPage = ({ user }) => {
                 {/* Car Image */}
                 <div className="relative h-48 bg-gray-200 overflow-hidden">
                   <img 
-                    src={rental.car?.image || 'https://via.placeholder.com/400x300?text=Car'} 
+                    src={rental.car?.images && rental.car.images[0] ? `http://localhost:8080/uploads/${rental.car.images[0]}` : '/karhubty-logo-blue.png'} 
                     alt={`${rental.car?.brand} ${rental.car?.model}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src = '/karhubty-logo-blue.png';
+                    }}
                   />
                   <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-sm font-semibold ${getStatusBadgeColor(rental.status)}`}>
                     {rental.status?.charAt(0).toUpperCase() + rental.status?.slice(1)}
