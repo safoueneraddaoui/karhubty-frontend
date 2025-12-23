@@ -59,12 +59,17 @@ const Navigation = ({ user, onLogout }) => {
                 <Link to={getDashboardLink()} className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
                   Dashboard
                 </Link>
+                <Link to="/cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                  Cars
+                </Link>
                 {user.role === 'user' && (
                   <Link to="/reserved-cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                    Voitures Réservées
+                    Reserved Cars
                   </Link>
                 )}
-                <NotificationIcon user={user} />
+                <div className="flex items-center">
+                  <NotificationIcon user={user} />
+                </div>
                 <Link to="/profile" className="text-gray-700 hover:text-sky-500 font-medium transition-colors flex items-center space-x-1">
                   <User className="w-4 h-4" />
                   <span>Profile</span>
@@ -111,9 +116,12 @@ const Navigation = ({ user, onLogout }) => {
                 <Link to={getDashboardLink()} onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
                   Dashboard
                 </Link>
+                <Link to="/cars" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
+                  Cars
+                </Link>
                 {user.role === 'user' && (
                   <Link to="/reserved-cars" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-sky-500 font-medium py-2">
-                    Voitures Réservées
+                    Reserved Cars
                   </Link>
                 )}
                 <div className="py-2">

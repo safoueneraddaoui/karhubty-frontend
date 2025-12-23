@@ -234,6 +234,25 @@ const rentalService = {
       return { count: 0 };
     }
   },
+
+  /**
+   * Generate PDF for rental (Agent only)
+   * @param {number} rentalId - Rental ID
+   * @returns {Promise} PDF blob
+   */
+  generateRentalPdf: async (rentalId) => {
+    try {
+      console.log('📄 rentalService.generateRentalPdf() - Generating PDF for rental:', rentalId);
+      const response = await api.get(`/rentals/${rentalId}/generate-pdf`, {
+        responseType: 'blob'
+      });
+      console.log('✅ rentalService.generateRentalPdf() - Success');
+      return response.data;
+    } catch (error) {
+      console.error('❌ rentalService.generateRentalPdf() - Error:', error);
+      throw error.response?.data?.message || 'Failed to generate PDF';
+    }
+  },
 };
 
 export default rentalService;

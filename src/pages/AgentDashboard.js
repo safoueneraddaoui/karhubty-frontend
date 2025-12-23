@@ -157,6 +157,28 @@ const AgentDashboard = ({ user }) => {
     }
   };
 
+  const downloadRentalPdf = async (rentalId) => {
+    try {
+      console.log('📄 Generating PDF for rental:', rentalId);
+      const pdfBlob = await rentalService.generateRentalPdf(rentalId);
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rental-${rentalId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      alert('PDF downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert(error || 'Failed to download PDF');
+    }
+  };
+
   const openCarModal = (car = null) => {
     if (car) {
       setEditingCar(car);
@@ -356,7 +378,10 @@ const AgentDashboard = ({ user }) => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-sky-500 hover:shadow-xl transition-shadow">
+          <button 
+            onClick={() => setActiveTab('cars')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-sky-500 hover:shadow-xl transition-shadow text-left hover:bg-sky-50 cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Cars</p>
@@ -366,9 +391,12 @@ const AgentDashboard = ({ user }) => {
                 <Car className="w-8 h-8 text-sky-600" />
               </div>
             </div>
-          </div>
+          </button>
           
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow">
+          <button 
+            onClick={() => setActiveTab('rentals')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500 hover:shadow-xl transition-shadow text-left hover:bg-yellow-50 cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Pending Requests</p>
@@ -380,21 +408,27 @@ const AgentDashboard = ({ user }) => {
                 <Calendar className="w-8 h-8 text-yellow-600" />
               </div>
             </div>
-          </div>
+          </button>
           
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
+          <button 
+            onClick={() => setActiveTab('reviews')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow text-left hover:bg-green-50 cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm font-medium">Revenue (Completed)</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">€{calculateRevenue()}</p>
+                <p className="text-gray-600 text-sm font-medium">Reviews</p>
+                <p className="text-3xl font-bold text-green-600 mt-1">{reviews.length}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-full">
-                <DollarSign className="w-8 h-8 text-green-600" />
+                <Star className="w-8 h-8 text-green-600" />
               </div>
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
+          <button 
+            onClick={() => setActiveTab('rentals')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow text-left hover:bg-purple-50 cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Active Rentals</p>
@@ -406,7 +440,7 @@ const AgentDashboard = ({ user }) => {
                 <TrendingUp className="w-8 h-8 text-purple-600" />
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Tabs */}
@@ -672,6 +706,17 @@ const AgentDashboard = ({ user }) => {
                           >
                             <XCircle className="w-4 h-4" />
                             Reject
+                          </button>
+                        </div>
+                      )}
+                      {rental.status === 'approved' && (
+                        <div className="flex flex-col gap-2 md:w-48">
+                          <button
+                            onClick={() => downloadRentalPdf(rental.rentalId)}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Download PDF
                           </button>
                         </div>
                       )}

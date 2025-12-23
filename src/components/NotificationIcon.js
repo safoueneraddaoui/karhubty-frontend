@@ -79,12 +79,8 @@ const NotificationIcon = ({ user }) => {
   const isUser = user.role === 'user';
 
   const handleToggleDropdown = () => {
-    const newState = !showDropdown;
-    setShowDropdown(newState);
-    // Clear notification count when opening dropdown
-    if (newState) {
-      setNotificationCount(0);
-    }
+    setShowDropdown(!showDropdown);
+    // Notification count is now always visible
   };
 
   return (
@@ -95,7 +91,7 @@ const NotificationIcon = ({ user }) => {
         title="Notifications"
       >
         <Bell className="w-5 h-5" />
-        {notificationCount > 0 && !showDropdown && (
+        {notificationCount > 0 && (
           <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
             {notificationCount}
           </span>
