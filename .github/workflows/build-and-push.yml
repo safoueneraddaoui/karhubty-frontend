@@ -43,18 +43,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Checkout devops repo for Dockerfile
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/karhubty-devops
-          path: devops
-          fetch-depth: 1
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./devops/Dockerfile.frontend
+          file: ./Dockerfile
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/karhubty-frontend:latest
