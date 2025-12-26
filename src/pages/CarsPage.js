@@ -8,6 +8,7 @@ const CarsPage = ({ user }) => {
   const [cars, setCars] = useState([]);
   const [filteredCars, setFilteredCars] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     category: 'all',
@@ -232,8 +233,40 @@ const CarsPage = ({ user }) => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCars.map(car => (
-              <CarCard key={car.carId} car={car} navigate={navigate} />
+              <CarCard key={car.carId} car={car} navigate={navigate} user={user} onShowLoginPrompt={() => setShowLoginPrompt(true)} />
             ))}
+          </div>
+        )}
+
+        {/* Login Prompt Modal */}
+        {showLoginPrompt && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-xl shadow-xl p-8 max-w-md w-full text-center">
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">Sign In Required</h3>
+              <p className="text-gray-600 mb-6">
+                You need to be logged in to book a car. Please sign in or create an account to continue.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowLoginPrompt(false);
+                    navigate('/login');
+                  }}
+                  className="flex-1 bg-sky-500 text-white py-2 rounded-lg font-semibold hover:bg-sky-600 transition-colors"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLoginPrompt(false);
+                    navigate('/register');
+                  }}
+                  className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Register
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -241,7 +274,16 @@ const CarsPage = ({ user }) => {
   );
 };
 
-const CarCard = ({ car, navigate }) => {
+const CarCard = ({ car, navigate, user, onShowLoginPrompt }) => {
+  const handleBookClick = (e) => {
+    e.stopPropagation();
+    if (!user) {
+      onShowLoginPrompt();
+    } else {
+      navigate(`/cars/${car.carId}`);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden cursor-pointer" onClick={() => navigate(`/cars/${car.carId}`)}>
       <div className="relative h-60 bg-gradient-to-b from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
@@ -267,7 +309,7 @@ const CarCard = ({ car, navigate }) => {
           </div>
           <div className="flex items-center bg-yellow-50 px-2 py-1 rounded">
             <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
-            <span className="text-sm font-semibold">{car.averageRating}</span>
+            <span className="text-sm font-semibold">{car.averageRating || 'N/A'}</span>
           </div>
         </div>
 
@@ -287,14 +329,11 @@ const CarCard = ({ car, navigate }) => {
         </div>
 
         <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/cars/${car.carId}`);
-          }}
+          onClick={handleBookClick}
           className="w-full bg-sky-500 text-white py-2 rounded-lg font-semibold hover:bg-sky-600 transition-colors flex items-center justify-center"
         >
           <Calendar className="w-4 h-4 mr-2" />
-          View Details & Book
+          {user ? 'View Details & Book' : 'View Details'}
         </button>
       </div>
     </div>

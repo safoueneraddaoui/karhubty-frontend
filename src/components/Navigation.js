@@ -25,25 +25,49 @@ const Navigation = ({ user, onLogout }) => {
     <nav className="fixed top-0 left-0 right-0 bg-white shadow-lg z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-1 group">
-            <img src="/karhubty-logo-blue.png" alt="Karhubty logo" className="w-20 h-20 md:w-24 md:h-24 object-cover rounded" />
-          </Link>
+          {/* Left Side - Logo + Menu Items */}
+          <div className="flex items-center space-x-8">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-1 group">
+              <img src="/karhubty-logo-blue.png" alt="Karhubty logo" className="w-20 h-20 md:w-24 md:h-24 object-cover rounded" />
+            </Link>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-6">
+            {/* Desktop Menu - Left Items */}
+            <div className="hidden md:flex items-center space-x-6">
+              {!user ? (
+                <>
+                  <Link to="/" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                    Accueil
+                  </Link>
+                  <Link to="/services" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                    Services
+                  </Link>
+                  <Link to="/about" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                    À Propos de nous
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to={getDashboardLink()} className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                    Dashboard
+                  </Link>
+                  <Link to="/cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                    Cars
+                  </Link>
+                  {user.role === 'user' && (
+                    <Link to="/reserved-cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
+                      Reserved Cars
+                    </Link>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Right Side - Auth/User Items */}
+          <div className="hidden md:flex items-center space-x-4">
             {!user ? (
               <>
-                {/* Not logged in menu */}
-                <Link to="/" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                  Accueil
-                </Link>
-                <Link to="/services" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                  Services
-                </Link>
-                <Link to="/about" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                  À Propos de nous
-                </Link>
                 <Link to="/login" className="text-gray-700 hover:text-sky-500 font-medium transition-colors flex items-center space-x-1">
                   <LogIn className="w-4 h-4" />
                   <span>Login</span>
@@ -55,18 +79,6 @@ const Navigation = ({ user, onLogout }) => {
               </>
             ) : (
               <>
-                {/* Logged in menu */}
-                <Link to={getDashboardLink()} className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                  Dashboard
-                </Link>
-                <Link to="/cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                  Cars
-                </Link>
-                {user.role === 'user' && (
-                  <Link to="/reserved-cars" className="text-gray-700 hover:text-sky-500 font-medium transition-colors">
-                    Reserved Cars
-                  </Link>
-                )}
                 <div className="flex items-center">
                   <NotificationIcon user={user} />
                 </div>

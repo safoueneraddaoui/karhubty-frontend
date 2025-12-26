@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Star, XCircle, Eye, MessageSquare, X } from 'lucide-react';
 import rentalService from '../services/rentalService';
 import reviewService from '../services/reviewService';
+import Toast from '../components/Toast';
 
 const UserDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -12,8 +13,31 @@ const UserDashboard = ({ user }) => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedRental, setSelectedRental] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    return id;
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
 
   useEffect(() => {
+    // Check for welcome toast flag
+    console.log('[UserDashboard] Checking for welcome toast...');
+    const showWelcome = sessionStorage.getItem('showWelcomeToast');
+    console.log('[UserDashboard] showWelcomeToast value:', showWelcome);
+    
+    if (showWelcome === 'true') {
+      console.log('[UserDashboard] Showing welcome toast!');
+      addToast('🎉 Mara7ba bik fi KarHubty!', 'success');
+      sessionStorage.removeItem('showWelcomeToast');
+    } else {
+      console.log('[UserDashboard] No welcome flag found');
+    }
     fetchUserRentals();
   }, []);
 
@@ -123,6 +147,19 @@ const UserDashboard = ({ user }) => {
 
   return (
     <div className="min-h-screen py-8 px-4 bg-gradient-to-br from-sky-50 to-white">
+      {/* Toast Notifications */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            duration={5000}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

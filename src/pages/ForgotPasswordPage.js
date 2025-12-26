@@ -21,17 +21,25 @@ const ForgotPasswordPage = () => {
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await axios.post('http://localhost:8080/api/auth/forgot-password', { email });
-      
-      // Simulated API call
-      setTimeout(() => {
-        setSuccess(true);
-        setLoading(false);
-      }, 1500);
+      const response = await fetch('http://localhost:8080/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
 
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(true);
+      } else {
+        setError(data.message || 'Failed to send reset link. Please try again.');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to send reset link. Please try again.');
+      setError('An error occurred. Please check your connection.');
+      console.error('Forgot password error:', err);
+    } finally {
       setLoading(false);
     }
   };

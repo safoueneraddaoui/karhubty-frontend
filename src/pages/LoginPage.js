@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import authService from '../services/authService';
+import Toast from '../components/Toast';
 
 const LoginPage = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -10,14 +11,30 @@ const LoginPage = ({ onLogin }) => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [errorType, setErrorType] = useState(''); // 'email-not-verified', 'general'
   const [loading, setLoading] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = (message, type = 'info', duration = 7000) => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type, duration }]);
+    return id;
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
-    setError('');
+    // Don't clear email verification errors immediately - let user read the message
+    if (errorType !== 'email-not-verified') {
+      setError('');
+      setErrorType('');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -42,12 +59,18 @@ const LoginPage = ({ onLogin }) => {
       // Check if agent/agentadmin is approved
       if ((userData.role === 'agent' || userData.role === 'agentadmin') && userData.isActive === false) {
         setError('Your agent account is not approved yet. Please wait for admin approval.');
+        setErrorType('general');
         setLoading(false);
         return;
       }
       
       // authService now handles token storage automatically
       onLogin(userData);
+      
+      // Set flag for dashboard to show welcome toast
+      console.log('[LoginPage] Setting welcome toast flag...');
+      sessionStorage.setItem('showWelcomeToast', 'true');
+      console.log('[LoginPage] Flag set:', sessionStorage.getItem('showWelcomeToast'));
       
       // Redirect based on user role
       if (userData.role === 'user') {
@@ -61,7 +84,23 @@ const LoginPage = ({ onLogin }) => {
       }
       
     } catch (err) {
-      setError(err || 'Login failed. Please try again.');
+      console.error('🔐 [LoginPage] Login error caught:', err);
+      const errorMessage = (typeof err === 'string' ? err : err?.message || err) || 'Login failed. Please try again.';
+      console.log('🔐 [LoginPage] Error message to display:', errorMessage);
+      setError(errorMessage);
+      
+      // Check if it's an email verification error
+      if (errorMessage.toLowerCase().includes('verify') || errorMessage.toLowerCase().includes('email')) {
+        console.log('🔐 [LoginPage] Email verification error detected');
+        setErrorType('email-not-verified');
+        // Show toast for email verification error (10 seconds)
+        const toastId = addToast('📧 Please verify your email before logging in. Check your inbox or spam folder.', 'error', 10000);
+      } else {
+        console.log('🔐 [LoginPage] General error');
+        setErrorType('general');
+        // Show toast for general error (7 seconds)
+        const toastId = addToast(errorMessage, 'error', 7000);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,6 +108,19 @@ const LoginPage = ({ onLogin }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      {/* Toast Notifications */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            duration={toast.duration || 7000}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>
+
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
@@ -80,9 +132,53 @@ const LoginPage = ({ onLogin }) => {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start">
-              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-              <span className="text-sm">{error}</span>
+            <div className={`border px-4 py-4 rounded-lg mb-6 flex items-start gap-3 ${
+              errorType === 'email-not-verified'
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                errorType === 'email-not-verified'
+                  ? 'text-amber-600'
+                  : 'text-red-700'
+              }`} />
+              <div className="flex-1">
+                <p className={`text-sm font-semibold mb-2 ${
+                  errorType === 'email-not-verified'
+                    ? 'text-amber-800'
+                    : 'text-red-700'
+                }`}>
+                  {errorType === 'email-not-verified' 
+                    ? '📧 Email Not Verified'
+                    : 'Login Error'}
+                </p>
+                <p className={`text-sm ${
+                  errorType === 'email-not-verified'
+                    ? 'text-amber-700'
+                    : 'text-red-600'
+                }`}>
+                  {error}
+                </p>
+                {errorType === 'email-not-verified' && (
+                  <p className={`text-sm mt-2 ${
+                    errorType === 'email-not-verified'
+                      ? 'text-amber-700'
+                      : 'text-red-600'
+                  }`}>
+                    Please check your email for a verification link. If you can't find it, check your spam folder.
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setError('');
+                  setErrorType('');
+                }}
+                className="text-gray-400 hover:text-gray-600 flex-shrink-0"
+                aria-label="Dismiss error"
+              >
+                ✕
+              </button>
             </div>
           )}
 

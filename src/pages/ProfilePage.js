@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Save, Lock, Building2, AlertCircle, CheckCircle, Edit2 } from 'lucide-react';
 import userService from '../services/userService';
 import tokenService from '../services/tokenService';
+import DocumentsUpload from '../components/DocumentsUpload';
 
 const ProfilePage = ({ user, setUser }) => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -100,7 +101,6 @@ const ProfilePage = ({ user, setUser }) => {
         const updatedUser = { ...currentUser, ...profileData };
         setUser(updatedUser);
         tokenService.setUser(updatedUser);
-        setMessage({ type: 'success', text: 'Profile loaded successfully!' });
       } catch (apiError) {
         // API fetch failed, but we already have cached data showing
         console.warn('⚠️ [ProfilePage] API fetch failed, using cached data:', apiError);
@@ -276,6 +276,18 @@ const ProfilePage = ({ user, setUser }) => {
                 >
                   Change Password
                 </button>
+                {user?.role === 'agent' && (
+                  <button
+                    onClick={() => setActiveTab('documents')}
+                    className={`py-4 px-6 font-medium border-b-2 transition-colors ${
+                      activeTab === 'documents'
+                        ? 'border-sky-500 text-sky-600'
+                        : 'border-transparent text-gray-600 hover:text-sky-500'
+                    }`}
+                  >
+                    Documents
+                  </button>
+                )}
               </div>
               {activeTab === 'profile' && (
                 <button
@@ -552,6 +564,11 @@ const ProfilePage = ({ user, setUser }) => {
                   )}
                 </button>
               </form>
+            )}
+
+            {/* Documents Tab */}
+            {activeTab === 'documents' && (
+              <DocumentsUpload user={user} />
             )}
           </div>
         </div>

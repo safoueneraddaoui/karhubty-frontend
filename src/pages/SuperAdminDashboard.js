@@ -1,5 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Building2, Car, CheckCircle, XCircle, Eye, Trash2, Shield, DollarSign, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Users, Building2, Car, CheckCircle, XCircle, Eye, Trash2, Shield, DollarSign, X, FileText } from 'lucide-react';
+import Toast from '../components/Toast';
+import DocumentsVerification from '../components/DocumentsVerification';
+import DocumentsReview from '../components/DocumentsReview';
+import useNotifications from '../hooks/useNotifications';
+import tokenService from '../services/tokenService';
+import api from '../services/api';
 
 const SuperAdminDashboard = ({ user }) => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -12,84 +18,183 @@ const SuperAdminDashboard = ({ user }) => {
   const [rentals, setRentals] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [showAgentModal, setShowAgentModal] = useState(false);
+  const [selectedAgentForDocuments, setSelectedAgentForDocuments] = useState(null);
+  const [toasts, setToasts] = useState([]);
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    return id;
+  };
 
-  const fetchAllData = async () => {
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+
+  const fetchAllData = useCallback(async () => {
     try {
-      // TODO: Replace with actual API calls
-      // const responses = await Promise.all([
-      //   axios.get('http://localhost:8080/api/admin/users'),
-      //   axios.get('http://localhost:8080/api/admin/agents'),
-      //   axios.get('http://localhost:8080/api/admin/agent-requests'),
-      //   axios.get('http://localhost:8080/api/admin/cars'),
-      //   axios.get('http://localhost:8080/api/admin/rentals'),
-      //   axios.get('http://localhost:8080/api/admin/stats')
-      // ]);
+      const token = tokenService.getToken();
       
-      // Mock data
-      const mockUsers = [
-        { userId: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', isActive: true, dateCreated: '2024-01-15' },
-        { userId: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', isActive: true, dateCreated: '2024-01-20' },
-        { userId: 3, firstName: 'Bob', lastName: 'Johnson', email: 'bob@example.com', isActive: false, dateCreated: '2024-02-01' }
-      ];
+      console.log('[SuperAdminDashboard] fetchAllData called');
+      console.log('[SuperAdminDashboard] Token retrieved:', token ? 'YES (length: ' + token.length + ')' : 'NO');
+      
+      if (!token) {
+        console.log('[SuperAdminDashboard] ERROR: No token found');
+        addToast('Not authenticated. Please login again.', 'error');
+        return;
+      }
 
-      const mockAgents = [
-        { agentId: 1, agencyName: 'Premium Rentals', email: 'premium@example.com', accountStatus: 'approved', city: 'Le Mans', dateRegistered: '2024-01-10' },
-        { agentId: 2, agencyName: 'Luxury Cars', email: 'luxury@example.com', accountStatus: 'approved', city: 'Paris', dateRegistered: '2024-01-25' }
-      ];
-
-      const mockAgentRequests = [
-        { requestId: 1, email: 'newagent@example.com', agencyName: 'New Rentals', city: 'Lyon', status: 'pending', requestDate: '2024-02-10' },
-        { requestId: 2, email: 'another@example.com', agencyName: 'Fast Cars', city: 'Marseille', status: 'pending', requestDate: '2024-02-12' }
-      ];
-
-      const mockCars = [
-        { carId: 1, brand: 'Tesla', model: 'Model 3', agentName: 'Premium Rentals', pricePerDay: 85, isAvailable: true },
-        { carId: 2, brand: 'BMW', model: 'X5', agentName: 'Premium Rentals', pricePerDay: 120, isAvailable: true },
-        { carId: 3, brand: 'Mercedes', model: 'E-Class', agentName: 'Luxury Cars', pricePerDay: 150, isAvailable: true }
-      ];
-
-      const mockRentals = [
-        { rentalId: 1, userName: 'John Doe', carName: 'Tesla Model 3', agentName: 'Premium Rentals', status: 'completed', totalPrice: 425, startDate: '2024-01-15' },
-        { rentalId: 2, userName: 'Jane Smith', carName: 'BMW X5', agentName: 'Premium Rentals', status: 'approved', totalPrice: 600, startDate: '2024-02-01' },
-        { rentalId: 3, userName: 'Bob Johnson', carName: 'Mercedes E-Class', agentName: 'Luxury Cars', status: 'pending', totalPrice: 750, startDate: '2024-02-15' }
-      ];
-
-      const mockStats = {
-        totalUsers: mockUsers.length,
-        activeUsers: mockUsers.filter(u => u.isActive).length,
-        totalAgents: mockAgents.length,
-        totalCars: mockCars.length,
-        totalRentals: mockRentals.length,
-        pendingRequests: mockAgentRequests.filter(r => r.status === 'pending').length,
-        totalRevenue: mockRentals.filter(r => r.status === 'completed').reduce((sum, r) => sum + r.totalPrice, 0)
+      const headers = { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
       };
 
-      setUsers(mockUsers);
-      setAgents(mockAgents);
-      setAgentRequests(mockAgentRequests);
-      setCars(mockCars);
-      setRentals(mockRentals);
-      setStats(mockStats);
+      console.log('[SuperAdminDashboard] Making API calls with token...');
+      console.log('[SuperAdminDashboard] Token (first 50 chars):', token.substring(0, 50) + '...');
+
+      // Fetch all admin data from backend APIs
+      const [statsRes, agentsRes, usersRes] = await Promise.all([
+        fetch('http://localhost:8080/api/admin/stats', { headers })
+          .then(r => {
+            console.log('[SuperAdminDashboard] /admin/stats response status:', r.status);
+            if (!r.ok) {
+              console.error('[SuperAdminDashboard] /admin/stats error:', r.status, r.statusText);
+              throw new Error(`API error: ${r.status} ${r.statusText}`);
+            }
+            return r.json();
+          })
+          .catch(e => {
+            console.error('[SuperAdminDashboard] /admin/stats fetch error:', e);
+            throw e;
+          }),
+        fetch('http://localhost:8080/api/admin/agents', { headers })
+          .then(r => {
+            console.log('[SuperAdminDashboard] /admin/agents response status:', r.status);
+            if (!r.ok) {
+              console.error('[SuperAdminDashboard] /admin/agents error:', r.status, r.statusText);
+              throw new Error(`API error: ${r.status} ${r.statusText}`);
+            }
+            return r.json();
+          })
+          .catch(e => {
+            console.error('[SuperAdminDashboard] /admin/agents fetch error:', e);
+            throw e;
+          }),
+        fetch('http://localhost:8080/api/users', { headers })
+          .then(r => {
+            console.log('[SuperAdminDashboard] /api/users response status:', r.status);
+            if (!r.ok) {
+              console.error('[SuperAdminDashboard] /api/users error:', r.status, r.statusText);
+              throw new Error(`API error: ${r.status} ${r.statusText}`);
+            }
+            return r.json();
+          })
+          .catch(e => {
+            console.error('[SuperAdminDashboard] /api/users fetch error:', e);
+            throw e;
+          }),
+      ]);
+
+      // Set stats
+      const pendingCount = (agentsRes || []).filter(a => a.accountStatus === 'pending').length || 0;
+      const verificationCount = (agentsRes || []).filter(a => a.accountStatus === 'in_verification').length || 0;
+      setStats({
+        totalUsers: statsRes.totalUsers || 0,
+        activeUsers: statsRes.totalUsers - 0 || 0,
+        totalAgents: statsRes.totalAgents || 0,
+        totalCars: statsRes.totalCars || 0,
+        totalRentals: statsRes.totalRentals || 0,
+        pendingRequests: pendingCount + verificationCount,
+        totalRevenue: statsRes.totalRevenue || 0
+      });
+
+      // Transform users data
+      setUsers(usersRes || []);
+
+      // Transform agents data - separate approved, pending, and in_verification
+      const approvedAgents = (agentsRes || []).filter(a => a.accountStatus === 'approved') || [];
+      const pendingAgents = (agentsRes || []).filter(a => a.accountStatus === 'pending') || [];
+      const verificationAgents = (agentsRes || []).filter(a => a.accountStatus === 'in_verification') || [];
+      
+      setAgents(approvedAgents);
+      setAgentRequests([
+        ...pendingAgents.map(a => ({
+          ...a,
+          requestId: a.agentId,
+          status: a.accountStatus
+        })),
+        ...verificationAgents.map(a => ({
+          ...a,
+          requestId: a.agentId,
+          status: a.accountStatus
+        }))
+      ]);
+
+      // TODO: Fetch cars and rentals when APIs are available
+      setCars([]);
+      setRentals([]);
+
       setLoading(false);
+      console.log('[SuperAdminDashboard] fetchAllData completed successfully');
     } catch (error) {
-      console.error('Error fetching admin data:', error);
+      console.error('[SuperAdminDashboard] Error fetching admin data:', error);
+      console.error('[SuperAdminDashboard] Error message:', error?.message);
+      console.error('[SuperAdminDashboard] Error stack:', error?.stack);
+      console.error('[SuperAdminDashboard] Full error object:', error);
+      addToast('Failed to load dashboard data: ' + (error?.message || 'Unknown error'), 'error');
       setLoading(false);
     }
-  };
+  }, [addToast]);
+
+  // Handle incoming real-time notifications
+  const handleNewNotification = useCallback((notification) => {
+    if (notification.type === 'documents_submitted') {
+      addToast(`📄 ${notification.message}`, 'info');
+      // Refresh agents list to show new verification agents
+      fetchAllData();
+      // Mark notification as read
+      api.put(`/notifications/${notification.notificationId}/read`).catch(() => {});
+    } else if (notification.type === 'document_verified' || notification.type === 'document_rejected') {
+      addToast(`${notification.title}: ${notification.message}`, 'info');
+      // Mark notification as read
+      api.put(`/notifications/${notification.notificationId}/read`).catch(() => {});
+    }
+  }, [fetchAllData, addToast]);
+
+  // Use notification hook for real-time updates
+  useNotifications(handleNewNotification, 4000);
+
+  useEffect(() => {
+    // Check for welcome toast flag (only run once on mount)
+    const showWelcome = sessionStorage.getItem('showWelcomeToast');
+    if (showWelcome === 'true') {
+      addToast('🎉 Mara7ba bik fi KarHubty!', 'success');
+      sessionStorage.removeItem('showWelcomeToast');
+    }
+    
+    fetchAllData();
+
+    // Cleanup: no interval cleanup needed since hook handles it
+    return () => {};
+  }, [fetchAllData, addToast]);
 
   const approveAgent = async (requestId) => {
     if (window.confirm('Approve this agent request?')) {
       try {
-        // TODO: API call
-        // await axios.put(`http://localhost:8080/api/admin/agent-requests/${requestId}/approve`);
-        alert('Agent approved successfully!');
-        fetchAllData();
+        await api.put(`/admin/agents/${requestId}/approve`, {});
+        addToast('Agent approved successfully!', 'success');
+        // Move agent from pending to approved in state
+        setAgentRequests(prevRequests => prevRequests.filter(r => r.requestId !== requestId));
+        // Find the agent and add to approved list
+        const agentToApprove = agentRequests.find(r => r.requestId === requestId);
+        if (agentToApprove) {
+          setAgents(prevAgents => [...prevAgents, { ...agentToApprove, accountStatus: 'approved' }]);
+        }
       } catch (error) {
-        alert('Failed to approve agent');
+        console.error('Error approving agent:', error);
+        addToast('Failed to approve agent: ' + (error.response?.data?.message || error.message), 'error');
       }
     }
   };
@@ -97,12 +202,13 @@ const SuperAdminDashboard = ({ user }) => {
   const rejectAgent = async (requestId) => {
     if (window.confirm('Reject this agent request?')) {
       try {
-        // TODO: API call
-        // await axios.put(`http://localhost:8080/api/admin/agent-requests/${requestId}/reject`);
-        alert('Agent request rejected');
-        fetchAllData();
+        await api.put(`/admin/agents/${requestId}/reject`, {});
+        addToast('Agent request rejected', 'success');
+        // Remove from pending requests
+        setAgentRequests(prevRequests => prevRequests.filter(r => r.requestId !== requestId));
       } catch (error) {
-        alert('Failed to reject agent');
+        console.error('Error rejecting agent:', error);
+        addToast('Failed to reject agent: ' + (error.response?.data?.message || error.message), 'error');
       }
     }
   };
@@ -111,12 +217,15 @@ const SuperAdminDashboard = ({ user }) => {
     const action = currentStatus ? 'deactivate' : 'activate';
     if (window.confirm(`Are you sure you want to ${action} this user?`)) {
       try {
-        // TODO: API call
-        // await axios.put(`http://localhost:8080/api/admin/users/${userId}/status`, { isActive: !currentStatus });
-        alert(`User ${action}d successfully`);
-        fetchAllData();
+        await api.put(`/admin/users/${userId}/status`, { isActive: !currentStatus });
+        addToast(`User ${action}d successfully`, 'success');
+        // Update user status in state immediately
+        setUsers(prevUsers => prevUsers.map(u => 
+          u.userId === userId ? { ...u, isActive: !currentStatus } : u
+        ));
       } catch (error) {
-        alert(`Failed to ${action} user`);
+        console.error(`Error ${action}ing user:`, error);
+        addToast(`Failed to ${action} user: ` + (error.response?.data?.message || error.message), 'error');
       }
     }
   };
@@ -124,12 +233,13 @@ const SuperAdminDashboard = ({ user }) => {
   const deleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       try {
-        // TODO: API call
-        // await axios.delete(`http://localhost:8080/api/admin/users/${userId}`);
-        alert('User deleted successfully');
-        fetchAllData();
+        await api.delete(`/admin/users/${userId}`);
+        addToast('User deleted successfully', 'success');
+        // Remove user from state immediately
+        setUsers(prevUsers => prevUsers.filter(u => u.userId !== userId));
       } catch (error) {
-        alert('Failed to delete user');
+        console.error('Error deleting user:', error);
+        addToast('Failed to delete user: ' + (error.response?.data?.message || error.message), 'error');
       }
     }
   };
@@ -137,12 +247,15 @@ const SuperAdminDashboard = ({ user }) => {
   const suspendAgent = async (agentId) => {
     if (window.confirm('Suspend this agent account?')) {
       try {
-        // TODO: API call
-        // await axios.put(`http://localhost:8080/api/admin/agents/${agentId}/suspend`);
-        alert('Agent suspended successfully');
-        fetchAllData();
+        await api.put(`/admin/agents/${agentId}/suspend`, {});
+        addToast('Agent suspended successfully', 'success');
+        // Update agent status in state immediately
+        setAgents(prevAgents => prevAgents.map(a => 
+          a.agentId === agentId ? { ...a, accountStatus: 'suspended' } : a
+        ));
       } catch (error) {
-        alert('Failed to suspend agent');
+        console.error('Error suspending agent:', error);
+        addToast('Failed to suspend agent: ' + (error.response?.data?.message || error.message), 'error');
       }
     }
   };
@@ -150,12 +263,14 @@ const SuperAdminDashboard = ({ user }) => {
   const deleteAgent = async (agentId) => {
     if (window.confirm('Delete this agent and all their cars? This action cannot be undone.')) {
       try {
-        // TODO: API call
-        // await axios.delete(`http://localhost:8080/api/admin/agents/${agentId}`);
-        alert('Agent deleted successfully');
-        fetchAllData();
+        await api.delete(`/admin/agents/${agentId}`);
+        addToast('Agent deleted successfully', 'success');
+        // Remove agent from state immediately
+        setAgents(prevAgents => prevAgents.filter(a => a.agentId !== agentId));
+        setAgentRequests(prevRequests => prevRequests.filter(r => r.agentId !== agentId));
       } catch (error) {
-        alert('Failed to delete agent');
+        console.error('Error deleting agent:', error);
+        addToast('Failed to delete agent: ' + (error.response?.data?.message || error.message), 'error');
       }
     }
   };
@@ -163,12 +278,13 @@ const SuperAdminDashboard = ({ user }) => {
   const deleteCar = async (carId) => {
     if (window.confirm('Delete this car?')) {
       try {
-        // TODO: API call
-        // await axios.delete(`http://localhost:8080/api/admin/cars/${carId}`);
-        alert('Car deleted successfully');
-        fetchAllData();
+        await api.delete(`/cars/${carId}`);
+        addToast('Car deleted successfully', 'success');
+        // Remove car from state immediately
+        setCars(prevCars => prevCars.filter(c => c.carId !== carId));
       } catch (error) {
-        alert('Failed to delete car');
+        console.error('Error deleting car:', error);
+        addToast('Failed to delete car: ' + (error.response?.data?.message || error.message), 'error');
       }
     }
   };
@@ -178,10 +294,49 @@ const SuperAdminDashboard = ({ user }) => {
     setShowUserModal(true);
   };
 
+  const viewAgentDetails = (agent) => {
+    setSelectedAgent(agent);
+    setShowAgentModal(true);
+  };
+
+  const requestAgentDocuments = async (agentEmail) => {
+    const documentTypes = [
+      'Business License',
+      'Insurance Certificate',
+      'Vehicle Registration',
+      'Driver License',
+      'Tax Identification'
+    ];
+    
+    const docsToRequest = prompt(
+      `Enter the documents needed (comma-separated):\n\n${documentTypes.join(', ')}\n\nOr write custom requirements:`,
+      'Business License, Insurance Certificate'
+    );
+
+    if (!docsToRequest) return;
+
+    try {
+      // Send email via backend
+      await api.post('/notifications/send-document-request', {
+        agentEmail,
+        agentName: selectedAgent?.firstName + ' ' + selectedAgent?.lastName,
+        requiredDocuments: docsToRequest,
+        message: `Please provide the following documents to complete your agent account verification: ${docsToRequest}`
+      });
+      
+      addToast('Document request email sent successfully!', 'success');
+      setShowAgentModal(false);
+    } catch (error) {
+      console.error('Error sending document request:', error);
+      addToast('Failed to send document request: ' + (error.response?.data?.message || error.message), 'error');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch(status) {
       case 'approved': return 'bg-green-100 text-green-800 border-green-300';
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'in_verification': return 'bg-purple-100 text-purple-800 border-purple-300';
       case 'suspended': return 'bg-red-100 text-red-800 border-red-300';
       case 'completed': return 'bg-blue-100 text-blue-800 border-blue-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-300';
@@ -201,6 +356,19 @@ const SuperAdminDashboard = ({ user }) => {
 
   return (
     <div className="min-h-screen py-8 px-4 bg-gradient-to-br from-sky-50 to-white">
+      {/* Toast Notifications */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            duration={5000}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -210,63 +378,91 @@ const SuperAdminDashboard = ({ user }) => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-sky-500 hover:shadow-xl transition-shadow">
+          <button
+            onClick={() => setActiveTab('users')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-sky-500 hover:shadow-xl transition-all hover:scale-105 hover:bg-sky-50 text-left cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Users</p>
                 <p className="text-3xl font-bold text-sky-600 mt-1">{stats.totalUsers}</p>
                 <p className="text-xs text-green-600 mt-1">↑ {stats.activeUsers} active</p>
               </div>
-              <div className="bg-sky-100 p-3 rounded-full">
+              <div className="bg-sky-100 p-3 rounded-full group-hover:bg-sky-200 transition-colors">
                 <Users className="w-8 h-8 text-sky-600" />
               </div>
             </div>
-          </div>
+          </button>
           
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
+          <button
+            onClick={() => setActiveTab('agents')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-all hover:scale-105 hover:bg-green-50 text-left cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Active Agents</p>
                 <p className="text-3xl font-bold text-green-600 mt-1">{stats.totalAgents}</p>
                 <p className="text-xs text-yellow-600 mt-1">↑ {stats.pendingRequests} pending</p>
               </div>
-              <div className="bg-green-100 p-3 rounded-full">
+              <div className="bg-green-100 p-3 rounded-full group-hover:bg-green-200 transition-colors">
                 <Building2 className="w-8 h-8 text-green-600" />
               </div>
             </div>
-          </div>
+          </button>
           
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
+          <button
+            onClick={() => setActiveTab('cars')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-all hover:scale-105 hover:bg-purple-50 text-left cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Total Cars</p>
                 <p className="text-3xl font-bold text-purple-600 mt-1">{stats.totalCars}</p>
                 <p className="text-xs text-gray-600 mt-1">Across all agents</p>
               </div>
-              <div className="bg-purple-100 p-3 rounded-full">
+              <div className="bg-purple-100 p-3 rounded-full group-hover:bg-purple-200 transition-colors">
                 <Car className="w-8 h-8 text-purple-600" />
               </div>
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-shadow">
+          <button
+            onClick={() => setActiveTab('rentals')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500 hover:shadow-xl transition-all hover:scale-105 hover:bg-orange-50 text-left cursor-pointer"
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm font-medium">Platform Revenue</p>
                 <p className="text-3xl font-bold text-orange-600 mt-1">€{stats.totalRevenue}</p>
                 <p className="text-xs text-green-600 mt-1">↑ {stats.totalRentals} rentals</p>
               </div>
-              <div className="bg-orange-100 p-3 rounded-full">
+              <div className="bg-orange-100 p-3 rounded-full group-hover:bg-orange-200 transition-colors">
                 <DollarSign className="w-8 h-8 text-orange-600" />
               </div>
             </div>
-          </div>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('documents')}
+            className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-all hover:scale-105 hover:bg-blue-50 text-left cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm font-medium">Pending Documents</p>
+                <p className="text-3xl font-bold text-blue-600 mt-1">Review</p>
+                <p className="text-xs text-gray-600 mt-1">Verify agent documents</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full group-hover:bg-blue-200 transition-colors">
+                <FileText className="w-8 h-8 text-blue-600" />
+              </div>
+            </div>
+          </button>
         </div>
 
         {/* Tabs */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-2 border-b border-gray-200">
-            {['overview', 'users', 'agents', 'agent-requests', 'cars', 'rentals'].map((tab) => (
+            {['overview', 'users', 'agents', 'agent-requests', 'cars', 'rentals', 'documents'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -437,44 +633,106 @@ const SuperAdminDashboard = ({ user }) => {
 
         {/* Agent Requests Tab */}
         {activeTab === 'agent-requests' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-6">
-              Pending Agent Requests ({agentRequests.filter(r => r.status === 'pending').length})
-            </h2>
-            {agentRequests.filter(r => r.status === 'pending').length === 0 ? (
-              <div className="text-center py-12">
-                <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600">No pending requests</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {agentRequests.filter(r => r.status === 'pending').map(request => (
-                  <div key={request.requestId} className="border rounded-lg p-4 flex justify-between items-center">
-                    <div>
-                      <h3 className="font-bold text-gray-800">{request.agencyName}</h3>
-                      <p className="text-sm text-gray-600">{request.email}</p>
-                      <p className="text-sm text-gray-600">{request.city} • Requested: {request.requestDate}</p>
+          <div className="bg-white rounded-xl shadow-lg p-6 space-y-8">
+            {/* Pending Agents Section */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-6">
+                Pending Agent Requests ({agentRequests.filter(r => r.status === 'pending').length})
+              </h2>
+              {agentRequests.filter(r => r.status === 'pending').length === 0 ? (
+                <div className="text-center py-12">
+                  <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600">No pending agent requests</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {agentRequests.filter(r => r.status === 'pending').map(request => (
+                    <div 
+                      key={request.requestId} 
+                      className="border rounded-lg p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => viewAgentDetails(request)}
+                    >
+                      <div>
+                        <h3 className="font-bold text-gray-800">{request.agencyName}</h3>
+                        <p className="text-sm text-gray-600">{request.email}</p>
+                        <p className="text-sm text-gray-600">{request.city} • Requested: {request.requestDate}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approveAgent(request.requestId);
+                          }}
+                          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            rejectAgent(request.requestId);
+                          }}
+                          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex items-center gap-2"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Reject
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => approveAgent(request.requestId)}
-                        className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => rejectAgent(request.requestId)}
-                        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex items-center gap-2"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            {agentRequests.filter(r => r.status === 'pending').length > 0 && agentRequests.filter(r => r.status === 'in_verification').length > 0 && (
+              <hr className="border-gray-300" />
             )}
+
+            {/* Agents Awaiting Document Verification Section */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                Awaiting Document Verification ({agentRequests.filter(r => r.status === 'in_verification').length})
+              </h2>
+              {agentRequests.filter(r => r.status === 'in_verification').length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600">No agents awaiting verification</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {agentRequests.filter(r => r.status === 'in_verification').map(agent => (
+                    <div 
+                      key={agent.requestId} 
+                      className="border-2 border-blue-200 rounded-lg p-4 flex justify-between items-center cursor-pointer hover:bg-blue-50 transition-colors bg-blue-50"
+                      onClick={() => viewAgentDetails(agent)}
+                    >
+                      <div>
+                        <h3 className="font-bold text-gray-800">{agent.agencyName}</h3>
+                        <p className="text-sm text-gray-600">{agent.email}</p>
+                        <p className="text-sm text-blue-600 font-medium">Status: Awaiting Document Review</p>
+                        <p className="text-sm text-gray-600">{agent.city}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Navigate to documents tab for this agent
+                            setActiveTab('documents');
+                          }}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Review Docs
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -572,6 +830,187 @@ const SuperAdminDashboard = ({ user }) => {
               Close
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Agent Request Details Modal */}
+      {showAgentModal && selectedAgent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-8 max-w-2xl w-full relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowAgentModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              title="Close"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="text-2xl font-bold text-gray-800 mb-6 pr-8">Agent Request Details</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Agency Information */}
+              <div className="md:col-span-2 bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">Agency Information</h4>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs text-blue-700">Agency Name</p>
+                    <p className="font-bold text-lg text-gray-800">{selectedAgent.agencyName || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-blue-700">Address</p>
+                    <p className="text-gray-800">{selectedAgent.agencyAddress || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Agent Personal Details */}
+              <div>
+                <p className="text-sm text-gray-600">First Name</p>
+                <p className="font-semibold text-gray-800">{selectedAgent.firstName || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Last Name</p>
+                <p className="font-semibold text-gray-800">{selectedAgent.lastName || 'N/A'}</p>
+              </div>
+
+              {/* Contact Information */}
+              <div>
+                <p className="text-sm text-gray-600">Email</p>
+                <p className="font-semibold text-gray-800 break-all">{selectedAgent.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Phone</p>
+                <p className="font-semibold text-gray-800">{selectedAgent.phone || 'N/A'}</p>
+              </div>
+
+              {/* Location */}
+              <div>
+                <p className="text-sm text-gray-600">City</p>
+                <p className="font-semibold text-gray-800">{selectedAgent.city || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Status</p>
+                <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+                  {selectedAgent.accountStatus || 'pending'}
+                </span>
+              </div>
+
+              {/* Dates */}
+              <div>
+                <p className="text-sm text-gray-600">Registration Date</p>
+                <p className="font-semibold text-gray-800">
+                  {selectedAgent.dateRegistered ? new Date(selectedAgent.dateRegistered).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Role</p>
+                <p className="font-semibold text-gray-800 capitalize">{selectedAgent.role || 'agent'}</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3 mt-8 pt-6 border-t">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    approveAgent(selectedAgent.requestId || selectedAgent.agentId);
+                    setShowAgentModal(false);
+                  }}
+                  className="flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Approve Agent
+                </button>
+                <button
+                  onClick={() => {
+                    rejectAgent(selectedAgent.requestId || selectedAgent.agentId);
+                    setShowAgentModal(false);
+                  }}
+                  className="flex-1 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <XCircle className="w-5 h-5" />
+                  Reject Agent
+                </button>
+              </div>
+              <button
+                onClick={() => requestAgentDocuments(selectedAgent.email)}
+                className="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 font-semibold transition-colors"
+              >
+                📄 Request Documents
+              </button>
+              <button
+                onClick={() => setShowAgentModal(false)}
+                className="w-full bg-gray-300 text-gray-800 py-3 rounded-lg hover:bg-gray-400 font-semibold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Documents Tab */}
+      {activeTab === 'documents' && (
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-600" />
+            Document Verification
+          </h2>
+          
+          {selectedAgentForDocuments ? (
+            <div>
+              <button
+                onClick={() => setSelectedAgentForDocuments(null)}
+                className="mb-4 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
+              >
+                <X className="w-4 h-4" />
+                Back to Agent List
+              </button>
+              <DocumentsReview
+                agentId={selectedAgentForDocuments.agentId}
+                agentName={selectedAgentForDocuments.agencyName}
+                onDocumentsVerified={() => {
+                  addToast('Documents verification complete', 'success');
+                  setSelectedAgentForDocuments(null);
+                  fetchAllData();
+                }}
+              />
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">
+                Select an agent to review their documents
+              </h3>
+              <div className="grid gap-4">
+                {agentRequests.filter(a => a.status === 'in_verification').length > 0 ? (
+                  agentRequests
+                    .filter(a => a.status === 'in_verification')
+                    .map((agent) => (
+                      <button
+                        key={agent.requestId}
+                        onClick={() => setSelectedAgentForDocuments(agent)}
+                        className="text-left p-4 border-2 border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-bold text-gray-800">{agent.agencyName}</h4>
+                            <p className="text-sm text-gray-600">{agent.email}</p>
+                            <p className="text-sm text-gray-600">{agent.city}</p>
+                          </div>
+                          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                            Awaiting Review
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl">
+                    <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600">No agents awaiting document verification</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

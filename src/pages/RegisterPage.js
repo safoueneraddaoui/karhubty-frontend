@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Mail, Lock, Phone, MapPin, Home, AlertCircle, CheckCircle, Building2 } from 'lucide-react';
 import authService from '../services/authService';
+import TermsAndPrivacyModal from '../components/TermsAndPrivacyModal';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -23,6 +24,8 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -48,12 +51,20 @@ const RegisterPage = () => {
       agencyAddress: ''
     });
     setError('');
+    setAcceptedTerms(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Check terms acceptance
+    if (!acceptedTerms) {
+      setError('You must accept the Terms & Conditions and Privacy Policy to continue');
+      setLoading(false);
+      return;
+    }
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -126,12 +137,15 @@ const RegisterPage = () => {
             <CheckCircle className="w-8 h-8 text-green-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Registration Successful!</h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-3">
             {accountType === 'agent' 
               ? 'Your agent account request has been submitted. Please wait for admin approval.'
-              : 'Your account has been created successfully.'}
+              : 'Your account has been created successfully!'}
           </p>
-          <p className="text-gray-600 mt-2">Redirecting to login page...</p>
+          <p className="text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-sm">
+            📧 <strong>Check your email:</strong> We've sent you a verification link. Please click it to confirm your email address and complete your registration.
+          </p>
+          <p className="text-gray-500 text-sm">Redirecting to login page...</p>
         </div>
       </div>
     );
@@ -380,16 +394,32 @@ const RegisterPage = () => {
             )}
 
             {/* Terms & Conditions */}
-            <div className="flex items-start">
+            <div className="flex items-start gap-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
               <input
                 type="checkbox"
-                required
-                className="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500 mt-1"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="w-4 h-4 text-sky-600 border-gray-300 rounded focus:ring-sky-500 mt-1 flex-shrink-0"
               />
-              <label className="ml-2 text-sm text-gray-600">
-                I agree to the <Link to="/terms" className="text-sky-600 hover:text-sky-700">Terms and Conditions</Link> and <Link to="/privacy" className="text-sky-600 hover:text-sky-700">Privacy Policy</Link>
+              <label className="text-sm text-gray-700 cursor-pointer flex-1">
+                <span>I have read and agree to the <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="text-sky-600 hover:underline font-semibold"
+                >
+                  Terms & Conditions and Privacy Policy
+                </button></span>
               </label>
             </div>
+
+            {!acceptedTerms && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-800 font-medium">
+                  You must accept the Terms & Conditions and Privacy Policy to create an account
+                </p>
+              </div>
+            )}
 
             {/* Submit Button */}
             <button
@@ -412,6 +442,16 @@ const RegisterPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Terms and Privacy Modal */}
+      <TermsAndPrivacyModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onAccept={() => {
+          setAcceptedTerms(true);
+          setShowTermsModal(false);
+        }}
+      />
     </div>
   );
 };
