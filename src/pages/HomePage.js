@@ -132,7 +132,7 @@ const HomePage = () => {
             {/* Left Side - Text */}
             <div className="text-white animate-slideInLeft">
               <div className="inline-block mb-6 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 animate-fadeInUp animation-delay-100">
-                <p className="text-sm font-semibold text-white">✨ Premium Car Rental Platform</p>
+                <p className="text-sm font-semibold text-white">✨ n7ebbk ya Khoulouhhh</p>
               </div>
               
               <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight tracking-tight animate-fadeInUp animation-delay-200">
