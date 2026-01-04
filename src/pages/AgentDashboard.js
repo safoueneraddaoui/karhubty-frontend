@@ -3,8 +3,11 @@ import { Car, Calendar, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, Tr
 import carService from '../services/carService';
 import rentalService from '../services/rentalService';
 import reviewService from '../services/reviewService';
+import imageService from '../services/imageService';
 import CarImageGallery from '../components/CarImageGallery';
 import CarImageUpload from '../components/CarImageUpload';
+
+const getImageUrl = imageService.getImageUrl;
 
 const AgentDashboard = ({ user }) => {
   const [cars, setCars] = useState([]);
@@ -549,7 +552,7 @@ const AgentDashboard = ({ user }) => {
                       {car.images && car.images.length > 0 ? (
                         <>
                           <img 
-                            src={`http://localhost:8080/uploads/${car.images[0]}`}
+                            src={getImageUrl(car.images[0])}
                             alt={`${car.brand} ${car.model}`} 
                             className="h-full w-full object-contain object-center"
                             loading="lazy"

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Lock, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import api from '../services/api';
 
 const ResetPasswordPage = () => {
   const { token } = useParams();
@@ -69,29 +70,16 @@ const ResetPasswordPage = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          newPassword: formData.password,
-        }),
+      const response = await api.post('/auth/reset-password', {
+        token,
+        newPassword: formData.password,
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/login');
-        }, 4000);
-      } else {
-        setError(data.message || 'Failed to reset password. Please try again.');
-      }
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 4000);
     } catch (err) {
-      setError('An error occurred. Please check your connection.');
+      setError(err.message || 'Failed to reset password. Please try again.');
       console.error('Reset password error:', err);
     } finally {
       setLoading(false);

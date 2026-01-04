@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, Star, XCircle, Eye, MessageSquare, X } from 'lucide-react';
 import rentalService from '../services/rentalService';
 import reviewService from '../services/reviewService';
+import imageService from '../services/imageService';
 import Toast from '../components/Toast';
+
+const getImageUrl = imageService.getImageUrl;
 
 const UserDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -305,7 +308,7 @@ const UserDashboard = ({ user }) => {
                     {/* Car Image */}
                     {rental.car && (
                       <img 
-                        src={rental.car.images && rental.car.images[0] ? `http://localhost:8080/uploads/${rental.car.images[0]}` : '/placeholder-car.jpg'} 
+                        src={rental.car.images && rental.car.images[0] ? getImageUrl(rental.car.images[0]) : '/placeholder-car.jpg'} 
                         alt={`${rental.car.brand} ${rental.car.model}`}
                         className="w-full md:w-48 h-32 object-cover rounded-lg"
                       />

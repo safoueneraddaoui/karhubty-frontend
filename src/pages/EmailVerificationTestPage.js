@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Mail, Copy } from 'lucide-react';
+import api from '../services/api';
 
 const EmailVerificationTestPage = () => {
   const navigate = useNavigate();
@@ -20,22 +21,17 @@ const EmailVerificationTestPage = () => {
     setMessage('');
 
     try {
-      const response = await fetch(`http://localhost:8080/api/auth/verify-email/${token}`);
-      const data = await response.json();
+      const response = await api.get(`/auth/verify-email/${token}`);
+      const data = response.data;
 
-      if (response.ok) {
-        setMessageType('success');
-        setMessage('✅ Email verified successfully! Redirecting to login...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 4000);
-      } else {
-        setMessageType('error');
-        setMessage(data.message || 'Failed to verify email. Please check the token.');
-      }
+      setMessageType('success');
+      setMessage('✅ Email verified successfully! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/login');
+      }, 4000);
     } catch (err) {
       setMessageType('error');
-      setMessage('An error occurred while verifying. Please check your connection.');
+      setMessage(err.message || 'Failed to verify email. Please check the token.');
       console.error('Verification error:', err);
     } finally {
       setLoading(false);

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Star, Users, Fuel, Settings2, Calendar } from 'lucide-react';
 import carService from '../services/carService';
+import imageService from '../services/imageService';
+
+const getImageUrl = imageService.getImageUrl;
 
 const CarsPage = ({ user }) => {
   const navigate = useNavigate();
@@ -288,7 +291,7 @@ const CarCard = ({ car, navigate, user, onShowLoginPrompt }) => {
     <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden cursor-pointer" onClick={() => navigate(`/cars/${car.carId}`)}>
       <div className="relative h-60 bg-gradient-to-b from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
         <img 
-          src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : '/karhubty-logo-blue.png'} 
+          src={car.images?.[0] ? `${getImageUrl(car.images[0])}` : '/karhubty-logo-blue.png'} 
           alt={`${car.brand} ${car.model}`}
           className="h-full w-full object-contain object-center"
           loading="lazy"

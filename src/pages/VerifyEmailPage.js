@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Loader, Mail } from 'lucide-react';
 import Toast from '../components/Toast';
+import api from '../services/api';
 
 const VerifyEmailPage = () => {
   const { token } = useParams();
@@ -34,26 +35,19 @@ const VerifyEmailPage = () => {
 
         addToast('Verifying your email...', 'info');
 
-        const response = await fetch(`http://localhost:8080/api/auth/verify-email/${token}`);
-        const data = await response.json();
-
-        if (response.ok) {
-          setVerified(true);
-          setLoading(false);
-          addToast('✅ Email verified successfully!', 'success');
-          
-          // Redirect to login after 5 seconds
-          setTimeout(() => {
-            navigate('/login');
-          }, 5000);
-        } else {
-          const errorMsg = data.message || 'Failed to verify email. Please try again.';
-          setError(errorMsg);
-          setLoading(false);
-          addToast(errorMsg, 'error');
-        }
+        const response = await api.get(`/auth/verify-email/${token}`);
+        const data = response.data;
+        
+        setVerified(true);
+        setLoading(false);
+        addToast('✅ Email verified successfully!', 'success');
+        
+        // Redirect to login after 5 seconds
+        setTimeout(() => {
+          navigate('/login');
+        }, 5000);
       } catch (err) {
-        const errorMsg = 'An error occurred while verifying your email. Please check your connection.';
+        const errorMsg = err.message || 'Failed to verify email. Please try again.';
         setError(errorMsg);
         setLoading(false);
         addToast(errorMsg, 'error');

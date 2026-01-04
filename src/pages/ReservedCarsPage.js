@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, DollarSign, Trash2, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import rentalService from '../services/rentalService';
+import imageService from '../services/imageService';
+
+const getImageUrl = imageService.getImageUrl;
 
 const ReservedCarsPage = ({ user }) => {
   const [rentals, setRentals] = useState([]);
@@ -93,7 +96,7 @@ const ReservedCarsPage = ({ user }) => {
                 {/* Car Image */}
                 <div className="relative h-48 bg-gray-200 overflow-hidden">
                   <img 
-                    src={rental.car?.images && rental.car.images[0] ? `http://localhost:8080/uploads/${rental.car.images[0]}` : '/karhubty-logo-blue.png'} 
+                    src={rental.car?.images && rental.car.images[0] ? getImageUrl(rental.car.images[0]) : '/karhubty-logo-blue.png'} 
                     alt={`${rental.car?.brand} ${rental.car?.model}`}
                     className="w-full h-full object-cover"
                     onError={(e) => {

@@ -1,8 +1,37 @@
 import axios from 'axios';
 import tokenService from './tokenService';
 
-// Base API URL - Change this to your backend URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+// Get API Base URL - supports both REACT_APP_API_URL and REACT_APP_API_BASE_URL env variables
+// Falls back to current window location if in production
+function getAPIBaseURL() {
+  // Check environment variables (in order of preference)
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  if (process.env.REACT_APP_API_BASE_URL) {
+    const baseUrl = process.env.REACT_APP_API_BASE_URL;
+    return baseUrl.endsWith('/api') ? baseUrl : `${baseUrl}/api`;
+  }
+  
+  // In production, use the current domain's backend API
+  if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+    const protocol = window.location.protocol; // http: or https:
+    const hostname = window.location.hostname; // domain or IP
+    const port = window.location.port ? `:${window.location.port.replace('3000', '8080')}` : '';
+    return `${protocol}//${hostname}${port}/api`;
+  }
+  
+  // Default fallback for development
+  return 'http://localhost:8080/api';
+}
+
+const API_BASE_URL = getAPIBaseURL();
+
+// Helper function to get API base URL without /api suffix (for file uploads, etc)
+function getAPIHost() {
+  const url = getAPIBaseURL();
+  return url.replace(/\/api\/?$/, '');
+}
 
 // Create axios instance
 const api = axios.create({
@@ -202,4 +231,5 @@ apiFormData.interceptors.response.use(
   }
 );
 
+export { getAPIHost };
 export default api;

@@ -4,6 +4,9 @@ import { Star, Users, Fuel, Settings2, Calendar, Shield, ArrowLeft, Check, X } f
 import carService from '../services/carService';
 import rentalService from '../services/rentalService';
 import reviewService from '../services/reviewService';
+import imageService from '../services/imageService';
+
+const getImageUrl = imageService.getImageUrl;
 
 const CarDetailsPage = ({ user }) => {
   const { carId } = useParams();
@@ -159,7 +162,7 @@ const CarDetailsPage = ({ user }) => {
             <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
               <div className="relative h-96 bg-gray-100 flex items-center justify-center overflow-hidden">
                 <img 
-                  src={car.images?.[0] ? `http://localhost:8080/uploads/${car.images[0]}` : '/karhubty-logo-blue.png'} 
+                  src={car.images?.[0] ? getImageUrl(car.images[0]) : '/karhubty-logo-blue.png'} 
                   alt={`${car.brand} ${car.model}`}
                   className="h-full w-full object-contain object-center"
                   onError={(e) => {
@@ -172,7 +175,7 @@ const CarDetailsPage = ({ user }) => {
                   {car.images.slice(1).map((image, index) => (
                     <div key={index} className="relative h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                       <img 
-                        src={`http://localhost:8080/uploads/${image}`} 
+                        src={getImageUrl(image)} 
                         alt={`${car.brand} ${car.model} ${index + 2}`}
                         className="h-full w-full object-contain object-center cursor-pointer hover:opacity-75"
                         onError={(e) => {

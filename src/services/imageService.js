@@ -116,9 +116,22 @@ const imageService = {
       return imagePath;
     }
 
-    // Get API base URL from api service
-    const apiBaseUrl =
-      localStorage.getItem('API_BASE_URL') || 'http://localhost:8080';
+    // Get API host URL dynamically
+    const getAPIHost = () => {
+      const env = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_API_URL;
+      if (env) {
+        return env.replace(/\/api\/?$/, '');
+      }
+      if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
+        const port = window.location.port ? `:${window.location.port.replace('3000', '8080')}` : '';
+        return `${protocol}//${hostname}${port}`;
+      }
+      return 'http://localhost:8080';
+    };
+    
+    const apiBaseUrl = getAPIHost();
     return `${apiBaseUrl}/uploads/${imagePath}`;
   },
 

@@ -56,40 +56,28 @@ const SuperAdminDashboard = ({ user }) => {
 
       // Fetch all admin data from backend APIs
       const [statsRes, agentsRes, usersRes] = await Promise.all([
-        fetch('http://localhost:8080/api/admin/stats', { headers })
+        api.get('/admin/stats')
           .then(r => {
             console.log('[SuperAdminDashboard] /admin/stats response status:', r.status);
-            if (!r.ok) {
-              console.error('[SuperAdminDashboard] /admin/stats error:', r.status, r.statusText);
-              throw new Error(`API error: ${r.status} ${r.statusText}`);
-            }
-            return r.json();
+            return r.data;
           })
           .catch(e => {
             console.error('[SuperAdminDashboard] /admin/stats fetch error:', e);
             throw e;
           }),
-        fetch('http://localhost:8080/api/admin/agents', { headers })
+        api.get('/admin/agents')
           .then(r => {
             console.log('[SuperAdminDashboard] /admin/agents response status:', r.status);
-            if (!r.ok) {
-              console.error('[SuperAdminDashboard] /admin/agents error:', r.status, r.statusText);
-              throw new Error(`API error: ${r.status} ${r.statusText}`);
-            }
-            return r.json();
+            return r.data;
           })
           .catch(e => {
             console.error('[SuperAdminDashboard] /admin/agents fetch error:', e);
             throw e;
           }),
-        fetch('http://localhost:8080/api/users', { headers })
+        api.get('/users')
           .then(r => {
             console.log('[SuperAdminDashboard] /api/users response status:', r.status);
-            if (!r.ok) {
-              console.error('[SuperAdminDashboard] /api/users error:', r.status, r.statusText);
-              throw new Error(`API error: ${r.status} ${r.statusText}`);
-            }
-            return r.json();
+            return r.data;
           })
           .catch(e => {
             console.error('[SuperAdminDashboard] /api/users fetch error:', e);
